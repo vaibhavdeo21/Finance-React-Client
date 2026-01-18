@@ -21,6 +21,7 @@ function GroupExpenses() {
         try {
             setLoading(true);
             const groupRes = await axios.get(`${serverEndpoint}/groups/my-groups`, { withCredentials: true });
+            const currentGroup = groupRes.data.groups?.find(g => g._id === groupId);
             setGroup(currentGroup);
 
             // Initialize budget from group data if it exists
