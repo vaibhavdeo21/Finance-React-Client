@@ -12,7 +12,6 @@ function Groups() {
     
     // Pagination & Sorting State
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
     const [limit] = useState(3);
     const [sortBy, setSortBy] = useState('newest'); // Added sortBy state
 
