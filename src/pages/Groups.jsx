@@ -22,6 +22,7 @@ function Groups() {
     const fetchGroups = async (page = 1) => {
         try {
             setLoading(true);
+            const response = await axios.get(
                 `${serverEndpoint}/groups/my-groups?page=${page}&limit=${limit}&sortBy=${sortBy}`,
                 { withCredentials: true }
             );
