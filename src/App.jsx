@@ -11,7 +11,6 @@ import axios from "axios";
 import { serverEndpoint } from "./config/appConfig";
 import { useSelector, useDispatch } from "react-redux";
 import { SET_USER } from "./redux/user/action";
-import Groups from "./pages/Groups";
 import Dashboard from "./pages/Dashboard"; 
 import GroupExpenses from "./pages/GroupExpenses";
 import ManageUsers from "./pages/ManageUsers";
