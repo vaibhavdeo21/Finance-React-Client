@@ -15,29 +15,27 @@
 
 // export default App;
 
-import {Route, Routes} from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import AppLayout from "./components/AppLayout";
-import Footer from "./components/Footer";
-import Header from "./components/Header";
 
-function App(){
+function App() {
   return (
     <Routes>
-      <Route 
-        path="/" 
-          element={
-            <AppLayout>
-                <Home/>
-            </AppLayout>
-          }
+      <Route
+        path="/"
+        element={
+          <AppLayout>
+            <Home />
+          </AppLayout>
+        }
       />
-      <Route 
+      <Route
         path="/login"
         element={
           <AppLayout>
-            <Login/>
+            <Login />
           </AppLayout>
         }
       />
