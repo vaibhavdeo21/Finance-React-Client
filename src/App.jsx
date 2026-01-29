@@ -16,12 +16,31 @@
 // export default App;
 
 import {Route, Routes} from "react-router-dom";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import AppLayout from "./components/AppLayout";
+import Footer from "./components/Footer";
+import Header from "./components/Header";
 
 function App(){
   return (
     <Routes>
-      <Route path="/" element={Home}/>
-      <ROute path="/login" element={Login}/>
+      <Route 
+        path="/" 
+          element={
+            <AppLayout>
+                <Home/>
+            </AppLayout>
+          }
+      />
+      <Route 
+        path="/login"
+        element={
+          <AppLayout>
+            <Login/>
+          </AppLayout>
+        }
+      />
     </Routes>
   );
 }
