@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Home from "./pages/Home";
+import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Logout from "./pages/Logout";
@@ -42,6 +43,20 @@ function App() {
           ) : (
             <AppLayout>
               <Home />
+            </AppLayout>
+          )
+        }
+      />
+
+      <Route
+        path="/register"
+        element={
+          userDetails ? (
+            <Navigate to="/dashboard" />
+          ) : (
+            <AppLayout>
+              {/* Pass setUser so Register can update the global state */}
+              <Register setUser={setUserDetails} />
             </AppLayout>
           )
         }
