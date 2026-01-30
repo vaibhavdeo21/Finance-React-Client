@@ -1,70 +1,118 @@
 import { useState } from "react";
 import axios from 'axios';
+import { Link } from "react-router-dom";
 
-function Login({ setUser }) { // Receive setUser prop
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-
+function Login({ setUser }) {
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
-  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (event) => {
-    setFormData({ ...formData, [event.target.name]: event.target.value });
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: null });
   };
 
   const validate = () => {
     let newErrors = {};
-    let isValid = true;
-    if (!formData.email) { newErrors.email = "Email is required"; isValid = false; }
-    if (!formData.password) { newErrors.password = "Password is required"; isValid = false; }
+    if (!formData.email) newErrors.email = "Email is required";
+    if (!formData.password) newErrors.password = "Password is required";
     setErrors(newErrors);
-    return isValid;
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
     if (validate()) {
+      setIsSubmitting(true);
       try {
         const config = { withCredentials: true };
         const response = await axios.post('http://localhost:5001/auth/login', formData, config);
-
-        console.log(response);
-        setMessage('User authenticated');
-
-        // UPDATE STATE: Tell App.jsx that we are logged in!
-        setUser(response.data.user);
-
+        setUser(response.data.user); 
       } catch (error) {
-        console.log(error);
-        setErrors({ message: 'Something went wrong, please try again' });
+        setErrors({ general: error.response?.data?.message || 'Login failed' });
+      } finally {
+        setIsSubmitting(false);
       }
-    } else {
-      console.log('Invalid Form');
     }
   };
 
   return (
-    <div className="container text-center">
-      <h3>Login to continue</h3>
-      {message && <div className="alert alert-success">{message}</div>}
-      {errors.message && <div className="alert alert-danger">{errors.message}</div>}
-      <form onSubmit={handleFormSubmit}>
-        <div>
-          <label>Email:</label>
-          <input className="form-control" type='text' name="email" onChange={handleChange} />
-          {errors.email && <div className="text-danger">{errors.email}</div>}
+    <div className="container mt-5">
+      <div className="row justify-content-center">
+        <div className="col-md-5">
+          
+          {/* Card with Hover Effect & Gold Border */}
+          <div className="card bg-black border-warning text-warning shadow-lg hover-effect">
+            
+            <div className="card-body p-4">
+              <h3 className="text-center mb-4 fw-bold">LOGIN</h3>
+              
+              {errors.general && (
+                  <div className="alert alert-danger bg-dark text-danger border-danger">
+                      {errors.general}
+                  </div>
+              )}
+
+              <form onSubmit={handleFormSubmit}>
+                
+                {/* Email Input */}
+                <div className="mb-3">
+                  <label className="form-label">Email Address</label>
+                  <input
+                    className="form-control bg-dark text-warning border-secondary"
+                    type='text'
+                    name="email"
+                    // Added a lighter placeholder color style manually if needed, 
+                    // or rely on browser defaults which might be dark.
+                    placeholder="name@example.com" 
+                    onChange={handleChange}
+                  />
+                  {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
+                </div>
+
+                {/* Password Input */}
+                <div className="mb-3">
+                  <label className="form-label">Password</label>
+                  <input
+                    className="form-control bg-dark text-warning border-secondary"
+                    type='password'
+                    name="password"
+                    placeholder="••••••••"
+                    onChange={handleChange}
+                  />
+                  {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
+                </div>
+
+                {/* Login Button */}
+                <div className="d-grid mt-4">
+                  <button 
+                    className="btn btn-warning fw-bold" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Accessing...' : 'Access Dashboard'}
+                  </button>
+                </div>
+
+              </form>
+
+              <hr className="border-warning my-4" />
+
+              {/* FIXED ALIGNMENT SECTION */}
+              {/* Used 'd-flex justify-content-center' for strict centering */}
+              <div className="d-flex justify-content-center align-items-center">
+                
+                {/* Changed text-muted to text-white-50 so it is visible on black */}
+                <span className="text-white-50 me-2">New here?</span>
+                
+                <Link to="/register" className="text-warning fw-bold text-decoration-none">
+                    Create Account
+                </Link>
+              </div>
+
+            </div>
+          </div>
         </div>
-        <div>
-          <label>Password:</label>
-          <input className="form-control" type='password' name="password" onChange={handleChange} />
-          {errors.password && <div className="text-danger">{errors.password}</div>}
-        </div>
-        <div className="mt-3">
-          <button className="btn btn-primary">Login</button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

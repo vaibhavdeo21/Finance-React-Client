@@ -1,0 +1,15 @@
+:root {
+  --bs-warning: #D4AF37; /* Metallic Gold */
+  --bs-warning-rgb: 212, 175, 55;
+  --bs-body-bg: #000000; 
+}
+
+/* 2. Custom Animation (Bootstrap doesn't have a 'slide-up' class) */
+.hover-effect {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-effect:hover {
+  transform: translateY(-5px); /* Float up */
+  box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3) !important; /* Gold Glow */
+}

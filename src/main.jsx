@@ -3,6 +3,7 @@ import { StrictMode } from 'react'
 // 'createRoot' is the modern way to start React (React 18+).
 import { createRoot } from 'react-dom/client'
 // We import the main App component we just built.
+import "./index.css";
 import App from './App.jsx'
 import 'bootstrap/dist/css/bootstrap.min.css'; //to use it when we are using bootstrap using cdn
 import {BrowserRouter} from "react-router-dom" // keep track of changes in the url
