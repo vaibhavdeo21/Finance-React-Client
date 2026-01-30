@@ -1,36 +1,25 @@
-// import Container from "react-bootstrap/Container";
-// function App() {
-//   return (
-//     <>
-//     <div className="container">
-//       <h1 className="text-center">Welcome To Finance App</h1>
-//     </div>
-
-//     <Container>
-//       <h1 className="text-center">Welcome to Finance App</h1>
-//     </Container>
-//     </>
-//   );
-// }
-
-// export default App;
-
-import {Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { useState } from "react";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./pages/Dashboard";
+import Logout from "./pages/Logout";
 import AppLayout from "./components/AppLayout";
-import { useState } from "react";
-
+import UserLayout from "./components/UserLayout";
 
 function App() {
-  /**Value of userDetails represents whether user
-   * is logged in or not
+  /**
+   * Value of userDetails represents whether the user
+   * is logged in or not.
+   * null = Not logged in
+   * Object = Logged in (contains user info)
    */
   const [userDetails, setUserDetails] = useState(null);
 
   return (
     <Routes>
+      {/* --- PUBLIC ROUTES --- */}
+      
       <Route
         path="/"
         element={
@@ -43,6 +32,7 @@ function App() {
           )
         }
       />
+
       <Route
         path="/login"
         element={
@@ -50,16 +40,33 @@ function App() {
             <Navigate to="/dashboard" />
           ) : (
             <AppLayout>
+              {/* We pass setUser function to Login so it can update the state */}
               <Login setUser={setUserDetails} />
             </AppLayout>
           )
         }
       />
+
+      {/* --- PRIVATE ROUTES --- */}
+
       <Route
         path="/dashboard"
         element={
           userDetails ? (
-            <Dashboard user={userDetails} />
+            <UserLayout>
+              <Dashboard user={userDetails} />
+            </UserLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      <Route
+        path="/logout"
+        element={
+          userDetails ? (
+            <Logout setUser={setUserDetails} />
           ) : (
             <Navigate to="/login" />
           )
