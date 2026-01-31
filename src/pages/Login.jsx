@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from 'axios';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Link } from "react-router-dom";
 
 function Login({ setUser }) {
@@ -36,6 +37,15 @@ function Login({ setUser }) {
     }
   };
 
+  const handleGoogleSuccess = (authResponse) => {
+      console.log(JSON.stringify(authResponse, null, 2));
+      // NOTE: Next step will be sending this authResponse.credential to our backend
+  };
+
+  const handleGoogleFailure = (error) => {
+      console.log(error);
+  };
+
   return (
     <div className="container mt-5">
       <div className="row justify-content-center">
@@ -62,8 +72,6 @@ function Login({ setUser }) {
                     className="form-control bg-dark text-warning border-secondary"
                     type='text'
                     name="email"
-                    // Added a lighter placeholder color style manually if needed, 
-                    // or rely on browser defaults which might be dark.
                     placeholder="name@example.com" 
                     onChange={handleChange}
                   />
@@ -92,18 +100,25 @@ function Login({ setUser }) {
                     {isSubmitting ? 'Accessing...' : 'Access Dashboard'}
                   </button>
                 </div>
-
               </form>
+
+              {/* --- GOOGLE LOGIN SECTION (INSERTED HERE) --- */}
+              <div className="d-flex justify-content-center mt-4">
+                 <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+                    <GoogleLogin 
+                      onSuccess={handleGoogleSuccess} 
+                      onError={handleGoogleFailure} 
+                      theme="filled_black" // Optional: Makes button dark to match theme
+                      shape="pill"         // Optional: Makes button rounded
+                    />
+                 </GoogleOAuthProvider>
+              </div>
 
               <hr className="border-warning my-4" />
 
-              {/* FIXED ALIGNMENT SECTION */}
-              {/* Used 'd-flex justify-content-center' for strict centering */}
+              {/* Footer Link */}
               <div className="d-flex justify-content-center align-items-center">
-                
-                {/* Changed text-muted to text-white-50 so it is visible on black */}
                 <span className="text-white-50 me-2">New here?</span>
-                
                 <Link to="/register" className="text-warning fw-bold text-decoration-none">
                     Create Account
                 </Link>
