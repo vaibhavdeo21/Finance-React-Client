@@ -6,22 +6,21 @@ function Logout({ setUser }) {
   
   const handleLogout = async () => {
     try {
-      // 1. Tell Server to delete cookie
+      // 1. POST request to server to clear cookie
       await axios.post(
         `${serverEndpoint}/auth/logout`,
         {}, 
         { withCredentials: true }
       );
 
-      // 2. Force clear client-side cookie (Backup)
+      // 2. Clear client-side cookie manually (Backup)
       document.cookie = "jwtToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       
-      // 3. Update State to null (Redirects to Login)
+      // 3. Update State
       setUser(null);
       
     } catch (error) {
       console.log(error);
-      // Even if server fails, we clear state to log user out locally
       setUser(null);
     }
   };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from 'axios';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Link } from "react-router-dom";
-import { serverEndpoint } from "../config/appConfig"; // IMPORT THIS
+import { serverEndpoint } from "../config/appConfig";
 
 function Login({ setUser }) {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -22,18 +22,15 @@ function Login({ setUser }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  // --- MANUAL LOGIN ---
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
       setIsSubmitting(true);
       try {
         const config = { withCredentials: true };
-        // UPDATED: Use serverEndpoint
         const response = await axios.post(`${serverEndpoint}/auth/login`, formData, config);
         setUser(response.data.user); 
       } catch (error) {
-        // This line catches "Please log in using Google SSO" from the backend
         setErrors({ general: error.response?.data?.message || 'Login failed' });
       } finally {
         setIsSubmitting(false);
@@ -41,13 +38,11 @@ function Login({ setUser }) {
     }
   };
 
-  // --- GOOGLE LOGIN ---
   const handleGoogleSuccess = async (authResponse) => {
     try {
       setIsSubmitting(true);
       const idToken = authResponse.credential;
 
-      // UPDATED: Use serverEndpoint
       const response = await axios.post(
         `${serverEndpoint}/auth/google-auth`, 
         { idToken: idToken },
@@ -77,7 +72,6 @@ function Login({ setUser }) {
             <div className="card-body p-4">
               <h3 className="text-center mb-4 fw-bold">LOGIN</h3>
               
-              {/* ERROR ALERT */}
               {errors.general && (
                   <div className="alert alert-danger bg-dark text-danger border-danger">
                       {errors.general}
@@ -116,7 +110,6 @@ function Login({ setUser }) {
                 </div>
               </form>
 
-              {/* GOOGLE BUTTON */}
               <div className="d-flex justify-content-center mt-4">
                  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
                     <GoogleLogin 

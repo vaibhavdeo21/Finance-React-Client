@@ -16,7 +16,6 @@ function App() {
 
   const isUserLoggedIn = async () => {
     try {
-      // UPDATED: Use serverEndpoint
       const response = await axios.post(
         `${serverEndpoint}/auth/is-user-logged-in`,
         {}, 
@@ -24,6 +23,7 @@ function App() {
       );
       setUserDetails(response.data.user);
     } catch (error) {
+      console.log("User not logged in");
       setUserDetails(null);
     } finally {
       setLoading(false);
@@ -37,68 +37,24 @@ function App() {
   if (loading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100 bg-black">
-        <div className="text-center">
-          <div className="spinner-border text-warning" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <h3 className="text-warning mt-3">Loading...</h3>
-        </div>
+        <h3 className="text-warning">Loading...</h3>
       </div>
     );
   }
 
   return (
     <Routes>
-      {/* --- PUBLIC ROUTES --- */}
-      
-      <Route
-        path="/"
-        element={
-          userDetails ? (
-            <Navigate to="/dashboard" />
-          ) : (
-            <AppLayout>
-              <Home />
-            </AppLayout>
-          )
-        }
-      />
+      {/* PUBLIC ROUTES */}
+      <Route path="/" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Home /></AppLayout> } />
+      <Route path="/register" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Register setUser={setUserDetails} /></AppLayout> } />
+      <Route path="/login" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Login setUser={setUserDetails} /></AppLayout> } />
 
-      <Route
-        path="/register"
-        element={
-          userDetails ? (
-            <Navigate to="/dashboard" />
-          ) : (
-            <AppLayout>
-              {/* Pass setUser so Register can update the global state */}
-              <Register setUser={setUserDetails} />
-            </AppLayout>
-          )
-        }
-      />
-
-      <Route
-        path="/login"
-        element={
-          userDetails ? (
-            <Navigate to="/dashboard" />
-          ) : (
-            <AppLayout>
-              {/* We pass setUser function to Login so it can update the state */}
-              <Login setUser={setUserDetails} />
-            </AppLayout>
-          )
-        }
-      />
-
-      {/* --- PRIVATE ROUTES --- */}
-
+      {/* PRIVATE ROUTES */}
       <Route
         path="/dashboard"
         element={
           userDetails ? (
-            <UserLayout>
+            <UserLayout user={userDetails}>
               <Dashboard user={userDetails} />
             </UserLayout>
           ) : (
