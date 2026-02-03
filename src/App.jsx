@@ -8,6 +8,7 @@ import Logout from "./pages/Logout";
 import AppLayout from "./components/AppLayout";
 import UserLayout from "./components/UserLayout";
 import axios from "axios";
+import { serverEndpoint } from "./config/appConfig";
 
 function App() {
   const [userDetails, setUserDetails] = useState(null);
@@ -15,22 +16,14 @@ function App() {
 
   const isUserLoggedIn = async () => {
     try {
+      // UPDATED: Use serverEndpoint
       const response = await axios.post(
-        'http://localhost:5001/auth/is-user-logged-in',
+        `${serverEndpoint}/auth/is-user-logged-in`,
         {}, 
         { withCredentials: true }
       );
       setUserDetails(response.data.user);
     } catch (error) {
-      // FIX: Check if the error is 401 (Unauthorized)
-      if (error.response && error.response.status === 401) {
-        // This is normal if the user is not logged in. 
-        // We do nothing here, or just set user to null silently.
-        console.log("User not logged in (Session inactive)");
-      } else {
-        // Only log REAL errors (like server down or network issues)
-        console.error("Error checking login status:", error);
-      }
       setUserDetails(null);
     } finally {
       setLoading(false);
