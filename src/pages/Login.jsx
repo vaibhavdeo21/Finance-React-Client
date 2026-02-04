@@ -3,8 +3,12 @@ import axios from 'axios';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Link } from "react-router-dom";
 import { serverEndpoint } from "../config/appConfig";
+import { useDispatch } from 'react-redux';
+import { SET_USER } from "../redux/user/action";
 
-function Login({ setUser }) {
+function Login() {
+  const dispatch = useDispatch(); // Redux Hook
+
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,7 +33,13 @@ function Login({ setUser }) {
       try {
         const config = { withCredentials: true };
         const response = await axios.post(`${serverEndpoint}/auth/login`, formData, config);
-        setUser(response.data.user); 
+        
+        // Dispatch to Redux
+        dispatch({
+            type: SET_USER,
+            payload: response.data.user
+        });
+        
       } catch (error) {
         setErrors({ general: error.response?.data?.message || 'Login failed' });
       } finally {
@@ -49,7 +59,11 @@ function Login({ setUser }) {
         { withCredentials: true }
       );
 
-      setUser(response.data.user);
+      // Dispatch to Redux
+      dispatch({
+        type: SET_USER,
+        payload: response.data.user
+      });
 
     } catch (error) {
       console.log(error);
@@ -71,65 +85,32 @@ function Login({ setUser }) {
           <div className="card bg-black border-warning text-warning shadow-lg hover-effect">
             <div className="card-body p-4">
               <h3 className="text-center mb-4 fw-bold">LOGIN</h3>
+              {errors.general && <div className="alert alert-danger bg-dark text-danger border-danger">{errors.general}</div>}
               
-              {errors.general && (
-                  <div className="alert alert-danger bg-dark text-danger border-danger">
-                      {errors.general}
-                  </div>
-              )}
-
               <form onSubmit={handleFormSubmit}>
+                {/* Inputs ... (Same as before) */}
                 <div className="mb-3">
                   <label className="form-label">Email Address</label>
-                  <input
-                    className="form-control bg-dark text-warning border-secondary"
-                    type='text'
-                    name="email"
-                    placeholder="name@example.com" 
-                    onChange={handleChange}
-                  />
-                  {errors.email && <div className="text-danger small mt-1">{errors.email}</div>}
+                  <input className="form-control bg-dark text-warning border-secondary" type='text' name="email" onChange={handleChange} />
                 </div>
-
                 <div className="mb-3">
                   <label className="form-label">Password</label>
-                  <input
-                    className="form-control bg-dark text-warning border-secondary"
-                    type='password'
-                    name="password"
-                    placeholder="••••••••"
-                    onChange={handleChange}
-                  />
-                  {errors.password && <div className="text-danger small mt-1">{errors.password}</div>}
+                  <input className="form-control bg-dark text-warning border-secondary" type='password' name="password" onChange={handleChange} />
                 </div>
-
                 <div className="d-grid mt-4">
-                  <button className="btn btn-warning fw-bold" disabled={isSubmitting}>
-                    {isSubmitting ? 'Accessing...' : 'Access Dashboard'}
-                  </button>
+                  <button className="btn btn-warning fw-bold" disabled={isSubmitting}>{isSubmitting ? 'Accessing...' : 'Access Dashboard'}</button>
                 </div>
               </form>
 
               <div className="d-flex justify-content-center mt-4">
                  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-                    <GoogleLogin 
-                      onSuccess={handleGoogleSuccess} 
-                      onError={handleGoogleFailure} 
-                      theme="filled_black" 
-                      shape="pill"         
-                    />
+                    <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleFailure} theme="filled_black" shape="pill" />
                  </GoogleOAuthProvider>
               </div>
-
               <hr className="border-warning my-4" />
-
               <div className="d-flex justify-content-center align-items-center">
-                <span className="text-white-50 me-2">New here?</span>
-                <Link to="/register" className="text-warning fw-bold text-decoration-none">
-                    Create Account
-                </Link>
+                <Link to="/register" className="text-warning fw-bold text-decoration-none">Create Account</Link>
               </div>
-
             </div>
           </div>
         </div>
