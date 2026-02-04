@@ -9,9 +9,17 @@ import AppLayout from "./components/AppLayout";
 import UserLayout from "./components/UserLayout";
 import axios from "axios";
 import { serverEndpoint } from "./config/appConfig";
+// Redux Imports
+import { useSelector, useDispatch } from 'react-redux';
+import { SET_USER } from "./redux/user/action";
+// Groups Import
+import Groups from "./pages/Groups";
 
 function App() {
-  const [userDetails, setUserDetails] = useState(null);
+  const dispatch = useDispatch();
+  
+  // We need to take out userDetails since we're interested in userDetails object.
+  const userDetails = useSelector((state) => state.userDetails);
   const [loading, setLoading] = useState(true);
 
   const isUserLoggedIn = async () => {
@@ -21,10 +29,14 @@ function App() {
         {}, 
         { withCredentials: true }
       );
-      setUserDetails(response.data.user);
+      
+      // Dispatch to Redux Store instead of local state
+      dispatch({
+        type: SET_USER,
+        payload: response.data.user
+      });
     } catch (error) {
-      console.log("User not logged in");
-      setUserDetails(null);
+      console.log(error);
     } finally {
       setLoading(false);
     }
@@ -46,16 +58,29 @@ function App() {
     <Routes>
       {/* PUBLIC ROUTES */}
       <Route path="/" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Home /></AppLayout> } />
-      <Route path="/register" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Register setUser={setUserDetails} /></AppLayout> } />
-      <Route path="/login" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Login setUser={setUserDetails} /></AppLayout> } />
+      <Route path="/register" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Register /></AppLayout> } />
+      <Route path="/login" element={ userDetails ? <Navigate to="/dashboard" /> : <AppLayout><Login /></AppLayout> } />
 
-      {/* PRIVATE ROUTES */}
+      {/* PRIVATE ROUTES (No more prop drilling) */}
       <Route
         path="/dashboard"
         element={
           userDetails ? (
-            <UserLayout user={userDetails}>
-              <Dashboard user={userDetails} />
+            <UserLayout>
+              <Dashboard />
+            </UserLayout>
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+
+      <Route
+        path="/groups"
+        element={
+          userDetails ? (
+            <UserLayout>
+              <Groups />
             </UserLayout>
           ) : (
             <Navigate to="/login" />
@@ -67,7 +92,7 @@ function App() {
         path="/logout"
         element={
           userDetails ? (
-            <Logout setUser={setUserDetails} />
+            <Logout />
           ) : (
             <Navigate to="/login" />
           )
