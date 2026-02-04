@@ -88,23 +88,46 @@ function Login() {
               {errors.general && <div className="alert alert-danger bg-dark text-danger border-danger">{errors.general}</div>}
               
               <form onSubmit={handleFormSubmit}>
-                {/* Inputs ... (Same as before) */}
+                
                 <div className="mb-3">
                   <label className="form-label">Email Address</label>
-                  <input className="form-control bg-dark text-warning border-secondary" type='text' name="email" onChange={handleChange} />
+                  <input 
+                    className="form-control bg-dark text-warning border-secondary" 
+                    type='text' 
+                    name="email" 
+                    placeholder="name@example.com"
+                    autoComplete="username"  // <--- ADDED THIS
+                    onChange={handleChange} 
+                  />
                 </div>
+
                 <div className="mb-3">
                   <label className="form-label">Password</label>
-                  <input className="form-control bg-dark text-warning border-secondary" type='password' name="password" onChange={handleChange} />
+                  <input 
+                    className="form-control bg-dark text-warning border-secondary" 
+                    type='password' 
+                    name="password" 
+                    placeholder="••••••••"
+                    autoComplete="current-password" // <--- ADDED THIS
+                    onChange={handleChange} 
+                  />
                 </div>
+
                 <div className="d-grid mt-4">
-                  <button className="btn btn-warning fw-bold" disabled={isSubmitting}>{isSubmitting ? 'Accessing...' : 'Access Dashboard'}</button>
+                  <button className="btn btn-warning fw-bold" disabled={isSubmitting}>
+                    {isSubmitting ? 'Accessing...' : 'Access Dashboard'}
+                  </button>
                 </div>
               </form>
 
               <div className="d-flex justify-content-center mt-4">
                  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-                    <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleFailure} theme="filled_black" shape="pill" />
+                    <GoogleLogin 
+                      onSuccess={handleGoogleSuccess} 
+                      onError={handleGoogleFailure} 
+                      theme="filled_black" 
+                      shape="pill" 
+                    />
                  </GoogleOAuthProvider>
               </div>
               <hr className="border-warning my-4" />
