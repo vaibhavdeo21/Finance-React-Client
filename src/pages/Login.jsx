@@ -7,8 +7,7 @@ import { useDispatch } from 'react-redux';
 import { SET_USER } from "../redux/user/action";
 
 function Login() {
-  const dispatch = useDispatch(); // Redux Hook
-
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,13 +32,7 @@ function Login() {
       try {
         const config = { withCredentials: true };
         const response = await axios.post(`${serverEndpoint}/auth/login`, formData, config);
-        
-        // Dispatch to Redux
-        dispatch({
-            type: SET_USER,
-            payload: response.data.user
-        });
-        
+        dispatch({ type: SET_USER, payload: response.data.user });
       } catch (error) {
         setErrors({ general: error.response?.data?.message || 'Login failed' });
       } finally {
@@ -51,20 +44,12 @@ function Login() {
   const handleGoogleSuccess = async (authResponse) => {
     try {
       setIsSubmitting(true);
-      const idToken = authResponse.credential;
-
       const response = await axios.post(
         `${serverEndpoint}/auth/google-auth`, 
-        { idToken: idToken },
+        { idToken: authResponse.credential },
         { withCredentials: true }
       );
-
-      // Dispatch to Redux
-      dispatch({
-        type: SET_USER,
-        payload: response.data.user
-      });
-
+      dispatch({ type: SET_USER, payload: response.data.user });
     } catch (error) {
       console.log(error);
       setErrors({ general: 'Google Login failed. Please try again.' });
@@ -73,67 +58,78 @@ function Login() {
     }
   };
 
-  const handleGoogleFailure = (error) => {
-      console.log("Google Login Error:", error);
-      setErrors({ general: "Google Sign-In was unsuccessful." });
-  };
-
   return (
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-5">
-          <div className="card bg-black border-warning text-warning shadow-lg hover-effect">
+          <div className="card bg-white border-0 shadow-lg rounded-4">
             <div className="card-body p-4">
-              <h3 className="text-center mb-4 fw-bold">LOGIN</h3>
-              {errors.general && <div className="alert alert-danger bg-dark text-danger border-danger">{errors.general}</div>}
+              <h3 className="text-center mb-4 fw-bold text-dark">Login</h3>
               
+              {errors.general && <div className="alert alert-danger">{errors.general}</div>}
+
               <form onSubmit={handleFormSubmit}>
-                
                 <div className="mb-3">
-                  <label className="form-label">Email Address</label>
-                  <input 
-                    className="form-control bg-dark text-warning border-secondary" 
-                    type='text' 
-                    name="email" 
+                  <label className="form-label text-muted small fw-bold">Email Address</label>
+                  <input
+                    className="form-control"
+                    type='text'
+                    name="email"
                     placeholder="name@example.com"
-                    autoComplete="username"  // <--- ADDED THIS
-                    onChange={handleChange} 
+                    autoComplete="username"
+                    onChange={handleChange}
                   />
+                  {errors.email && <div className="text-danger small">{errors.email}</div>}
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Password</label>
-                  <input 
-                    className="form-control bg-dark text-warning border-secondary" 
-                    type='password' 
-                    name="password" 
+                  <label className="form-label text-muted small fw-bold">Password</label>
+                  <input
+                    className="form-control"
+                    type='password'
+                    name="password"
                     placeholder="••••••••"
-                    autoComplete="current-password" // <--- ADDED THIS
-                    onChange={handleChange} 
+                    autoComplete="current-password"
+                    onChange={handleChange}
                   />
+                  {errors.password && <div className="text-danger small">{errors.password}</div>}
                 </div>
 
                 <div className="d-grid mt-4">
-                  <button className="btn btn-warning fw-bold" disabled={isSubmitting}>
-                    {isSubmitting ? 'Accessing...' : 'Access Dashboard'}
+                  <button className="btn btn-primary fw-bold" disabled={isSubmitting}>
+                    {isSubmitting ? 'Accessing...' : 'Login'}
                   </button>
                 </div>
               </form>
 
-              <div className="d-flex justify-content-center mt-4">
+              {/* Divider */}
+              <div className="d-flex align-items-center my-4">
+                <hr className="flex-grow-1 text-muted" />
+                <span className="mx-3 text-muted small fw-bold">OR</span>
+                <hr className="flex-grow-1 text-muted" />
+              </div>
+
+              {/* Google Social Login */}
+              <div className="d-flex justify-content-center w-100">
                  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
                     <GoogleLogin 
                       onSuccess={handleGoogleSuccess} 
-                      onError={handleGoogleFailure} 
-                      theme="filled_black" 
-                      shape="pill" 
+                      onError={() => console.log('Login Failed')}
+                      theme="outline"
+                      shape="pill"
+                      text="signin_with"
+                      width="500"
                     />
                  </GoogleOAuthProvider>
               </div>
-              <hr className="border-warning my-4" />
-              <div className="d-flex justify-content-center align-items-center">
-                <Link to="/register" className="text-warning fw-bold text-decoration-none">Create Account</Link>
+
+              <div className="text-center mt-4">
+                <span className="text-muted">New here? </span>
+                <Link to="/register" className="text-primary fw-bold text-decoration-none">
+                    Create Account
+                </Link>
               </div>
+
             </div>
           </div>
         </div>
