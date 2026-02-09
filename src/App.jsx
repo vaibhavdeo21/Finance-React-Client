@@ -3,7 +3,6 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import AppLayout from "./components/AppLayout";
 import { useEffect, useState } from "react";
-import Dashboard from "./pages/Dashboard";
 import Logout from "./pages/Logout";
 import UserLayout from "./components/UserLayout";
 import axios from "axios";
@@ -12,15 +11,12 @@ import { useSelector, useDispatch } from "react-redux";
 import { SET_USER } from "./redux/user/action";
 import Groups from "./pages/Groups";
 import GroupExpenses from "./pages/GroupExpenses";
+import ManageUsers from "./pages/ManageUsers";
+import ProtectedRoute from "./rbac/ProtectedRoute";
+import UnauthorizedAccess from "./components/errors/UnauthorizedAccess";
 
 function App() {
     const dispatch = useDispatch();
-    // Value of userDetails represents whether the user
-    // is logged in or not.
-
-    // useSelector takes in 1 function as input. Redux calls the function that
-    // you pass to useSelector with all the values its storing/managing.
-    // We need to take out userDetails since we're interested in userDetails object.
     const userDetails = useSelector((state) => state.userDetails);
     const [loading, setLoading] = useState(true);
 
@@ -32,7 +28,6 @@ function App() {
                 { withCredentials: true }
             );
 
-            // setUserDetails(response.data.user);
             dispatch({
                 type: SET_USER,
                 payload: response.data.user,
@@ -105,6 +100,36 @@ function App() {
                         </UserLayout>
                     ) : (
                         <Navigate to="/login" />
+                    )
+                }
+            />
+
+            <Route
+                path="/manage-users"
+                element={
+                    userDetails ? (
+                        <ProtectedRoute roles={["admin"]}>
+                            <UserLayout>
+                                <ManageUsers />
+                            </UserLayout>
+                        </ProtectedRoute>
+                    ) : (
+                        <Navigate to="/login" />
+                    )
+                }
+            />
+
+            <Route
+                path="/unauthorized-access"
+                element={
+                    userDetails ? (
+                        <UserLayout>
+                            <UnauthorizedAccess />
+                        </UserLayout>
+                    ) : (
+                        <AppLayout>
+                            <UnauthorizedAccess />
+                        </AppLayout>
                     )
                 }
             />

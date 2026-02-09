@@ -81,7 +81,6 @@ function ManageUsers() {
                 setUsers([...users, response.data.user]);
                 setMessage("User added!");
                 setFormData({ name: "", email: "", role: "Select" });
-                setErrors({});
             } catch (error) {
                 console.log(error);
                 setErrors({ message: "Unable to add user, please try again" });
@@ -91,26 +90,10 @@ function ManageUsers() {
         }
     };
 
-    const handleDelete = async (userId) => {
-        if (window.confirm("Are you sure you want to delete this user?")) {
-            try {
-                await axios.post(
-                    `${serverEndpoint}/users/delete`,
-                    { userId },
-                    { withCredentials: true }
-                );
-                setUsers(users.filter((user) => user._id !== userId));
-            } catch (error) {
-                console.log(error);
-                alert("Failed to delete user");
-            }
-        }
-    };
-
     if (loading) {
         return (
             <div className="container p-5 text-center">
-                <div className="spinner-border text-primary" role="status">
+                <div className="spinner-border" role="status">
                     <span className="visually-hidden">Loading...</span>
                 </div>
             </div>
@@ -142,70 +125,91 @@ function ManageUsers() {
             </div>
 
             <div className="row">
-                {/* Form to Add Users - Wrapped in Can to check permission */}
+                {/* Add user form - Protected by RBAC */}
                 <Can requiredPermission="canCreateUsers">
                     <div className="col-md-3">
-                        <div className="card shadow-sm border-0">
-                            <div className="card-header bg-white border-bottom-0 pt-3">
-                                <h5 className="mb-0 fw-bold text-secondary">Add Member</h5>
+                        <div className="card shadow-sm">
+                            <div className="card-header">
+                                <h5>Add Member</h5>
                             </div>
-                            <div className="card-body p-3">
+                            <div className="card-body p-2">
                                 <form onSubmit={handleSubmit}>
                                     <div className="mb-3">
-                                        <label className="form-label small fw-bold text-muted">Name</label>
+                                        <label className="form-label">Name</label>
                                         <input
                                             type="text"
                                             name="name"
-                                            className={errors.name ? "form-control is-invalid" : "form-control"}
+                                            className={
+                                                errors.name
+                                                    ? "form-control is-invalid"
+                                                    : "form-control"
+                                            }
                                             value={formData.name}
                                             onChange={handleChange}
-                                            placeholder="John Doe"
                                         />
                                         {errors.name && (
-                                            <div className="invalid-feedback ps-1">{errors.name}</div>
+                                            <div className="invalid-feedback ps-1">
+                                                {errors.name}
+                                            </div>
                                         )}
                                     </div>
 
                                     <div className="mb-3">
-                                        <label className="form-label small fw-bold text-muted">Email</label>
+                                        <label className="form-label">Email</label>
                                         <input
                                             type="text"
                                             name="email"
-                                            className={errors.email ? "form-control is-invalid" : "form-control"}
+                                            className={
+                                                errors.email
+                                                    ? "form-control is-invalid"
+                                                    : "form-control"
+                                            }
                                             value={formData.email}
                                             onChange={handleChange}
-                                            placeholder="john@example.com"
                                         />
                                         {errors.email && (
-                                            <div className="invalid-feedback ps-1">{errors.email}</div>
+                                            <div className="invalid-feedback ps-1">
+                                                {errors.email}
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className="mb-4">
-                                        <label className="form-label small fw-bold text-muted">Role</label>
+                                    <div className="mb-3">
+                                        <label className="form-label">Role</label>
                                         <select
                                             name="role"
-                                            className={errors.role ? "form-select is-invalid" : "form-select"}
+                                            className={
+                                                errors.role
+                                                    ? "form-select is-invalid"
+                                                    : "form-select"
+                                            }
                                             value={formData.role}
                                             onChange={handleChange}
                                         >
-                                            <option value="Select">Select Role</option>
+                                            <option value="Select">Select</option>
                                             <option value="manager">Manager</option>
                                             <option value="viewer">Viewer</option>
                                         </select>
                                         {errors.role && (
-                                            <div className="invalid-feedback ps-1">{errors.role}</div>
+                                            <div className="invalid-feedback ps-1">
+                                                {errors.role}
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className="mb-2">
-                                        <button className="btn btn-primary w-100 rounded-pill fw-bold" disabled={actionLoading}>
+                                    <div className="mb-3">
+                                        <button className="btn btn-primary w-100">
                                             {actionLoading ? (
-                                                <div className="spinner-border spinner-border-sm" role="status">
-                                                    <span className="visually-hidden">Loading...</span>
+                                                <div
+                                                    className="spinner-border"
+                                                    role="status"
+                                                >
+                                                    <span className="visually-hidden">
+                                                        Loading...
+                                                    </span>
                                                 </div>
                                             ) : (
-                                                "Add User"
+                                                <>Add</>
                                             )}
                                         </button>
                                     </div>
@@ -215,64 +219,57 @@ function ManageUsers() {
                     </div>
                 </Can>
 
-                {/* Table to View Users */}
+                {/* View users table */}
                 <div className="col-md-9">
-                    <div className="card shadow-sm border-0">
-                        <div className="card-header bg-white border-bottom-0 pt-3 pb-2">
-                            <h5 className="mb-0 fw-bold text-secondary">Team Members</h5>
+                    <div className="card shadow-sm">
+                        <div className="card-header">
+                            <h5>Team Members</h5>
                         </div>
                         <div className="card-body p-0">
                             <div className="table-responsive">
-                                <table className="table table-hover mb-0 align-middle">
+                                <table className="table table-hover mb-0">
                                     <thead className="table-light">
                                         <tr>
-                                            <th className="ps-4 py-3 text-secondary small text-uppercase">Name</th>
-                                            <th className="py-3 text-secondary small text-uppercase">Email</th>
-                                            <th className="py-3 text-secondary small text-uppercase">Role</th>
-                                            <th className="pe-4 py-3 text-secondary small text-uppercase text-center">Actions</th>
+                                            <th className="text-center">Name</th>
+                                            <th className="text-center">Email</th>
+                                            <th className="text-center">Role</th>
+                                            <th className="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {users.length === 0 && (
                                             <tr>
-                                                <td colSpan={4} className="text-center py-5 text-muted">
-                                                    No users found. Start by adding one!
+                                                <td
+                                                    colSpan={4}
+                                                    className="text-center py-4 text-muted"
+                                                >
+                                                    No users found. Start by
+                                                    adding one!
                                                 </td>
                                             </tr>
                                         )}
-                                        {users.length > 0 && users.map((user) => (
-                                            <tr key={user._id}>
-                                                <td className="ps-4 fw-medium text-dark">{user.name}</td>
-                                                <td className="text-muted">{user.email}</td>
-                                                <td>
-                                                    <span className={`badge rounded-pill px-3 py-2 ${user.role === 'admin' ? 'bg-primary' : user.role === 'manager' ? 'bg-success' : 'bg-secondary'}`}>
+                                        {users.length > 0 &&
+                                            users.map((user) => (
+                                                <tr key={user._id}>
+                                                    <td className="align-middle">
+                                                        {user.name}
+                                                    </td>
+                                                    <td className="align-middle">
+                                                        {user.email}
+                                                    </td>
+                                                    <td className="align-middle">
                                                         {user.role}
-                                                    </span>
-                                                </td>
-                                                <td className="pe-4 text-center">
-                                                    <div className="d-flex justify-content-center gap-2">
-                                                        <Can requiredPermission="canUpdateUsers">
-                                                            <button 
-                                                                className="btn btn-sm btn-outline-primary border-0"
-                                                                title="Edit"
-                                                            >
-                                                                <i className="bi bi-pencil-square"></i> Edit
-                                                            </button>
-                                                        </Can>
-                                                        
-                                                        <Can requiredPermission="canDeleteUsers">
-                                                            <button 
-                                                                className="btn btn-sm btn-outline-danger border-0"
-                                                                title="Delete"
-                                                                onClick={() => handleDelete(user._id)}
-                                                            >
-                                                                <i className="bi bi-trash"></i> Delete
-                                                            </button>
-                                                        </Can>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                                    </td>
+                                                    <td className="align-middle">
+                                                        <button className="btn btn-link text-primary">
+                                                            Edit
+                                                        </button>
+                                                        <button className="btn btn-link text-danger">
+                                                            Delete
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
                                     </tbody>
                                 </table>
                             </div>
