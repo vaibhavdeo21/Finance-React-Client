@@ -34,17 +34,7 @@ function UserHeader() {
                 <div className="collapse navbar-collapse" id="userNavbar">
                     {/* Primary App Navigation */}
                     <ul className="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
-                        {/* <li className="nav-item">
-                            <Link
-                                className={`nav-link px-3 ${isActive(
-                                    "/dashboard"
-                                )}`}
-                                to="/dashboard"
-                            >
-                                <i className="bi bi-speedometer2 me-1"></i>{" "}
-                                Groups
-                            </Link>
-                        </li> */}
+                        {/* Add more nav items here if needed */}
                     </ul>
 
                     {/* User Profile Dropdown */}
@@ -84,6 +74,17 @@ function UserHeader() {
                                     <p className="mb-0 small text-muted">
                                         {user?.email}
                                     </p>
+                                </li>
+                                
+                                {/* Link to Manage Users */}
+                                <li>
+                                    <Link className="dropdown-item py-2 fw-medium" to="/manage-users">
+                                        <i className="bi bi-person-check me-2"></i> Manage Users
+                                    </Link>
+                                </li>
+
+                                <li>
+                                    <hr className="m-0" />
                                 </li>
                                 <li>
                                     <Link
