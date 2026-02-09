@@ -10,23 +10,23 @@ function Groups() {
     const [loading, setLoading] = useState(true);
     const [show, setShow] = useState(false);
     
-    // Pagination State
+    // Pagination & Sorting State
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(0);
-    const [limit] = useState(3); // Set limit to 3 as per PDF requirement
+    const [totalPages, setTotalPages] = useState(1);
+    const [limit] = useState(3);
+    const [sortBy, setSortBy] = useState('newest'); // Added sortBy state
 
     const permissions = usePermission();
 
+    // Fetch groups with pagination and sorting
     const fetchGroups = async (page = 1) => {
         try {
             setLoading(true);
-            // Pass page and limit as query parameters
             const response = await axios.get(
-                `${serverEndpoint}/groups/my-groups?page=${page}&limit=${limit}`,
+                `${serverEndpoint}/groups/my-groups?page=${page}&limit=${limit}&sortBy=${sortBy}`,
                 { withCredentials: true }
             );
             
-            // Update state with paginated data
             setGroups(response.data.groups);
             setTotalPages(response.data.pagination.totalPages);
             setCurrentPage(response.data.pagination.currentPage);
@@ -37,23 +37,22 @@ function Groups() {
         }
     };
 
-    const handleGroupUpdateSuccess = (data) => {
-        // Refresh the current page to show updates
+    // Re-fetch whenever page or sort order changes
+    useEffect(() => {
+        fetchGroups(currentPage);
+    }, [currentPage, sortBy]);
+
+    const handleGroupUpdateSuccess = () => {
         fetchGroups(currentPage);
     };
 
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
-            fetchGroups(newPage);
+            setCurrentPage(newPage);
         }
     };
 
-    useEffect(() => {
-        // Fetch the first page on initial load
-        fetchGroups(1);
-    }, []);
-
-    if (loading) {
+    if (loading && groups.length === 0) {
         return (
             <div
                 className="container p-5 d-flex flex-column align-items-center justify-content-center"
@@ -76,7 +75,7 @@ function Groups() {
     return (
         <div className="container py-5 px-4 px-md-5">
             <div className="row align-items-center mb-5">
-                <div className="col-md-8 text-center text-md-start mb-3 mb-md-0">
+                <div className="col-md-6 text-center text-md-start mb-3 mb-md-0">
                     <h2 className="fw-bold text-dark display-6">
                         Manage <span className="text-primary">Groups</span>
                     </h2>
@@ -85,23 +84,46 @@ function Groups() {
                         expenses in one click.
                     </p>
                 </div>
-                <div className="col-md-4 text-center text-md-end">
-                    {permissions.canCreateGroups && (
-                        <button
-                            className="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm"
-                            onClick={() => setShow(true)}
-                        >
-                            <i className="bi bi-plus-lg me-2"></i>
-                            New Group
-                        </button>
-                    )}
+                
+                {/* Controls Section: Sort Dropdown + New Group Button */}
+                <div className="col-md-6 text-center text-md-end">
+                    <div className="d-flex align-items-center justify-content-center justify-content-md-end gap-3">
+                        
+                        {/* Sort Dropdown */}
+                        <div className="d-flex align-items-center bg-light px-3 py-2 rounded-pill border">
+                            <label className="me-2 small fw-bold text-muted mb-0">Sort:</label>
+                            <select 
+                                className="form-select form-select-sm border-0 bg-transparent shadow-none p-0 fw-medium" 
+                                style={{ width: "auto", cursor: "pointer" }}
+                                value={sortBy}
+                                onChange={(e) => {
+                                    setSortBy(e.target.value);
+                                    setCurrentPage(1); // Reset to first page when sort changes
+                                }}
+                            >
+                                <option value="newest">Newest First</option>
+                                <option value="oldest">Oldest First</option>
+                            </select>
+                        </div>
+
+                        {/* Create Group Button (RBAC Protected) */}
+                        {permissions.canCreateGroups && (
+                            <button
+                                className="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm"
+                                onClick={() => setShow(true)}
+                            >
+                                <i className="bi bi-plus-lg me-2"></i>
+                                New Group
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
             <hr className="mb-5 opacity-10" />
 
             {/* Empty State */}
-            {groups.length === 0 && (
+            {groups.length === 0 && !loading && (
                 <div className="text-center py-5 bg-light rounded-5 border border-dashed border-primary border-opacity-25 shadow-inner">
                     <div className="bg-white rounded-circle d-inline-flex p-4 mb-4 shadow-sm">
                         <i
