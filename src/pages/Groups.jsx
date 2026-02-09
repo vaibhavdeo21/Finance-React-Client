@@ -9,15 +9,27 @@ function Groups() {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
     const [show, setShow] = useState(false);
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [limit] = useState(3); // Set limit to 3 as per PDF requirement
+
     const permissions = usePermission();
 
-    const fetchGroups = async () => {
+    const fetchGroups = async (page = 1) => {
         try {
+            setLoading(true);
+            // Pass page and limit as query parameters
             const response = await axios.get(
-                `${serverEndpoint}/groups/my-groups`,
+                `${serverEndpoint}/groups/my-groups?page=${page}&limit=${limit}`,
                 { withCredentials: true }
             );
-            setGroups(response.data);
+            
+            // Update state with paginated data
+            setGroups(response.data.groups);
+            setTotalPages(response.data.pagination.totalPages);
+            setCurrentPage(response.data.pagination.currentPage);
         } catch (error) {
             console.log(error);
         } finally {
@@ -26,20 +38,19 @@ function Groups() {
     };
 
     const handleGroupUpdateSuccess = (data) => {
-        setGroups((prevGroups) => {
-            const exists = prevGroups.some((group) => group._id === data._id);
-            if (exists) {
-                return prevGroups.map((group) =>
-                    group._id === data._id ? data : group
-                );
-            } else {
-                return [data, ...prevGroups];
-            }
-        });
+        // Refresh the current page to show updates
+        fetchGroups(currentPage);
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            fetchGroups(newPage);
+        }
     };
 
     useEffect(() => {
-        fetchGroups();
+        // Fetch the first page on initial load
+        fetchGroups(1);
     }, []);
 
     if (loading) {
@@ -89,6 +100,7 @@ function Groups() {
 
             <hr className="mb-5 opacity-10" />
 
+            {/* Empty State */}
             {groups.length === 0 && (
                 <div className="text-center py-5 bg-light rounded-5 border border-dashed border-primary border-opacity-25 shadow-inner">
                     <div className="bg-white rounded-circle d-inline-flex p-4 mb-4 shadow-sm">
@@ -116,6 +128,7 @@ function Groups() {
                 </div>
             )}
 
+            {/* Groups Grid */}
             {groups.length > 0 && (
                 <div className="row g-4 animate__animated animate__fadeIn">
                     {groups.map((group) => (
@@ -126,6 +139,52 @@ function Groups() {
                             />
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {groups.length > 0 && totalPages > 1 && (
+                <div className="d-flex justify-content-center mt-5">
+                    <nav aria-label="Page navigation">
+                        <ul className="pagination">
+                            {/* Previous Button */}
+                            <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+                                <button
+                                    className="page-link"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    aria-label="Previous"
+                                >
+                                    <span aria-hidden="true">&laquo;</span>
+                                </button>
+                            </li>
+
+                            {/* Page Numbers */}
+                            {[...Array(totalPages)].map((_, index) => (
+                                <li
+                                    key={index + 1}
+                                    className={`page-item ${currentPage === index + 1 ? "active" : ""}`}
+                                >
+                                    <button
+                                        className="page-link"
+                                        onClick={() => handlePageChange(index + 1)}
+                                    >
+                                        {index + 1}
+                                    </button>
+                                </li>
+                            ))}
+
+                            {/* Next Button */}
+                            <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+                                <button
+                                    className="page-link"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    aria-label="Next"
+                                >
+                                    <span aria-hidden="true">&raquo;</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             )}
 
