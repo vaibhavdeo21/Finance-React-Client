@@ -88,6 +88,12 @@ function UserHeader() {
                                         <i className="bi bi-person-check me-2"></i> Manage Users
                                     </Link>
                                 </li>
+                                
+                                <li>
+                                    <Link className="dropdown-item py-2 fw-medium" to="/manage-payments">
+                                        <i className="bi bi-person-check me-2"></i> Payments & Subscription
+                                    </Link>
+                                </li>
 
                                 <li>
                                     <hr className="m-0" />

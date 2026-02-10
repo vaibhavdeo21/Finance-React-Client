@@ -41,7 +41,10 @@ function ManagePayments() {
                 </div>
             )}
 
-            
+            <h2>Manage Payments</h2>
+            <p><strong>Current Credit Balance</strong></p>
+
+
         </div>
     );
 }

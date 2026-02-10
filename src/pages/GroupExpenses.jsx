@@ -87,24 +87,23 @@ function GroupExpenses() {
                                 <p className="text-muted small">No expenses yet.</p>
                             ) : (
                                 <ul className="list-group list-group-flush">
-                                    {Object.entries(balances).map(([email, amount]) => {
-                                        // Check if the email in the list is the same as the logged-in user
+                                    {Object.entries(balances).map(([email, data]) => { // FIX: Change 'amount' to 'data' here
                                         const isMe = email === userDetails?.email;
 
-                                        // If it's the user, show "You". Otherwise, show the name (or email prefix as fallback)
-                                        const displayName = isMe ? "You" : email.split('@')[0];
+                                        // Now 'data' is defined, so these lines will work:
+                                        const displayName = isMe ? "You" : (data.name || email.split('@')[0]);
+                                        const amount = data.amount || 0;
 
                                         return (
                                             <li key={email} className="list-group-item px-0 d-flex justify-content-between align-items-center">
                                                 <div className="d-flex align-items-center gap-2">
-                                                    <div className="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-secondary" style={{ width: '32px', height: '32px' }}>
+                                                    <div className="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-secondary" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
                                                         {displayName.charAt(0).toUpperCase()}
                                                     </div>
-                                                    <div className="small text-truncate">
+                                                    <div className="small text-truncate" style={{ maxWidth: '120px' }} title={email}>
                                                         {displayName}
                                                     </div>
                                                 </div>
-                                                {/* Logic for "You owe" vs "You get" */}
                                                 <span className={`fw-bold small ${amount >= 0 ? 'text-success' : 'text-danger'}`}>
                                                     {amount >= 0
                                                         ? `${isMe ? 'get' : 'gets'} ₹${amount.toFixed(2)}`
@@ -135,7 +134,10 @@ function GroupExpenses() {
                                             <div className="d-flex flex-column">
                                                 <span className="fw-bold text-dark">{expense.description}</span>
                                                 <span className="text-muted extra-small">
-                                                    Paid by <span className="fw-medium">{expense.payerEmail === userDetails?.email ? 'You' : expense.payerEmail.split('@')[0]}</span>
+                                                    {/* Use the new payerName from backend enriched data */}
+                                                    Paid by <span className="fw-medium">
+                                                        {expense.payerEmail === userDetails?.email ? 'You' : expense.payerName}
+                                                    </span>
                                                     {' • '}{new Date(expense.date).toLocaleDateString()}
                                                 </span>
                                             </div>
