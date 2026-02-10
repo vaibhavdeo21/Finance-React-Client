@@ -16,6 +16,7 @@ import GroupExpenses from "./pages/GroupExpenses";
 import ManageUsers from "./pages/ManageUsers";
 import ProtectedRoute from "./rbac/ProtectedRoute";
 import UnauthorizedAccess from "./components/errors/UnauthorizedAccess";
+import ManagePayments from "./pages/ManagePayments";
 
 function App() {
     const dispatch = useDispatch();
@@ -147,6 +148,21 @@ function App() {
             />
 
             <Route
+                path="/manage-payments"
+                element={
+                    userDetails ? (
+                        <ProtectedRoute roles={["admin"]}>
+                            <UserLayout>
+                                <ManagePayments />
+                            </UserLayout>
+                        </ProtectedRoute>
+                    ) : (
+                        <Navigate to="/login" />
+                    )
+                }
+            />
+
+            <Route
                 path="/unauthorized-access"
                 element={
                     userDetails ? (
@@ -166,8 +182,8 @@ function App() {
                 element={userDetails ? <Logout /> : <Navigate to="/login" />}
             />
         </Routes>
-        
-        
+
+
     );
 }
 
