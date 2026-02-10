@@ -75,7 +75,13 @@ function UserHeader() {
                                         {user?.email}
                                     </p>
                                 </li>
-                                
+
+                                <li>
+                                    <Link className={`dropdown-item py-2 fw-medium ${isActive("/profile")}`} to="/profile">
+                                        <i className="bi bi-person-circle me-2"></i> My Profile
+                                    </Link>
+                                </li>
+
                                 {/* Link to Manage Users */}
                                 <li>
                                     <Link className="dropdown-item py-2 fw-medium" to="/manage-users">

@@ -1,33 +1,31 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useSelector } from "react-redux"; // Added
 import { serverEndpoint } from "../config/appConfig";
 import AddExpenseModal from "../components/AddExpenseModal";
 
 function GroupExpenses() {
     const { groupId } = useParams();
+    const userDetails = useSelector((state) => state.userDetails); // Get current user
     const [group, setGroup] = useState(null);
     const [expenses, setExpenses] = useState([]);
     const [balances, setBalances] = useState({});
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
-    
-    // Fetch data whenever groupId changes or after an update
+
     const fetchData = async () => {
         try {
-            // 1. Fetch all groups to find the current one (Since backend lacks getGroupById)
+            setLoading(true);
             const groupRes = await axios.get(`${serverEndpoint}/groups/my-groups`, { withCredentials: true });
-            const currentGroup = groupRes.data.find(g => g._id === groupId);
+            const currentGroup = groupRes.data.groups?.find(g => g._id === groupId);
             setGroup(currentGroup);
 
-            // 2. Fetch Expenses
             const expenseRes = await axios.get(`${serverEndpoint}/expenses/${groupId}`, { withCredentials: true });
             setExpenses(expenseRes.data);
 
-            // 3. Fetch Summary (Net Balances)
             const summaryRes = await axios.get(`${serverEndpoint}/expenses/${groupId}/summary`, { withCredentials: true });
             setBalances(summaryRes.data.balances);
-
         } catch (error) {
             console.error("Error fetching group data", error);
         } finally {
@@ -40,10 +38,10 @@ function GroupExpenses() {
     }, [groupId]);
 
     const handleSettleUp = async () => {
-        if(!window.confirm("Are you sure you want to settle all debts? This cannot be undone.")) return;
+        if (!window.confirm("Are you sure you want to settle all debts? This cannot be undone.")) return;
         try {
             await axios.post(`${serverEndpoint}/expenses/settle`, { groupId }, { withCredentials: true });
-            fetchData(); // Refresh to show zeros
+            fetchData();
         } catch (error) {
             alert("Failed to settle group");
         }
@@ -54,7 +52,6 @@ function GroupExpenses() {
 
     return (
         <div className="container py-5">
-            {/* Breadcrumb & Header */}
             <nav aria-label="breadcrumb">
                 <ol className="breadcrumb">
                     <li className="breadcrumb-item"><Link to="/dashboard">Groups</Link></li>
@@ -65,12 +62,12 @@ function GroupExpenses() {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 className="fw-bold mb-0">{group.name}</h2>
-                    <span className={`badge rounded-pill ${group.paymentStatus.isPaid ? 'bg-success' : 'bg-warning text-dark'}`}>
-                        {group.paymentStatus.isPaid ? 'Settled' : 'Active'}
+                    <span className={`badge rounded-pill ${group.paymentStatus?.isPaid ? 'bg-success' : 'bg-warning text-dark'}`}>
+                        {group.paymentStatus?.isPaid ? 'Settled' : 'Active'}
                     </span>
                 </div>
                 <div className="d-flex gap-2">
-                    {!group.paymentStatus.isPaid && (
+                    {!group.paymentStatus?.isPaid && (
                         <button className="btn btn-success rounded-pill px-4" onClick={handleSettleUp}>
                             <i className="bi bi-check-circle me-2"></i>Settle Up
                         </button>
@@ -82,7 +79,6 @@ function GroupExpenses() {
             </div>
 
             <div className="row g-4">
-                {/* Left Column: Balances (Summary) */}
                 <div className="col-lg-4">
                     <div className="card border-0 shadow-sm rounded-4 h-100">
                         <div className="card-body p-4">
@@ -91,28 +87,38 @@ function GroupExpenses() {
                                 <p className="text-muted small">No expenses yet.</p>
                             ) : (
                                 <ul className="list-group list-group-flush">
-                                    {Object.entries(balances).map(([email, amount]) => (
-                                        <li key={email} className="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                            <div className="d-flex align-items-center gap-2">
-                                                <div className="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-secondary" style={{width: '32px', height: '32px', fontSize: '12px'}}>
-                                                    {email.charAt(0).toUpperCase()}
+                                    {Object.entries(balances).map(([email, amount]) => {
+                                        // Check if the email in the list is the same as the logged-in user
+                                        const isMe = email === userDetails?.email;
+
+                                        // If it's the user, show "You". Otherwise, show the name (or email prefix as fallback)
+                                        const displayName = isMe ? "You" : email.split('@')[0];
+
+                                        return (
+                                            <li key={email} className="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <div className="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-secondary" style={{ width: '32px', height: '32px' }}>
+                                                        {displayName.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="small text-truncate">
+                                                        {displayName}
+                                                    </div>
                                                 </div>
-                                                <div className="small text-truncate" style={{maxWidth: '120px'}} title={email}>
-                                                    {email.split('@')[0]}
-                                                </div>
-                                            </div>
-                                            <span className={`fw-bold small ${amount >= 0 ? 'text-success' : 'text-danger'}`}>
-                                                {amount >= 0 ? `gets ₹${amount.toFixed(2)}` : `owes ₹${Math.abs(amount).toFixed(2)}`}
-                                            </span>
-                                        </li>
-                                    ))}
+                                                {/* Logic for "You owe" vs "You get" */}
+                                                <span className={`fw-bold small ${amount >= 0 ? 'text-success' : 'text-danger'}`}>
+                                                    {amount >= 0
+                                                        ? `${isMe ? 'get' : 'gets'} ₹${amount.toFixed(2)}`
+                                                        : `${isMe ? 'owe' : 'owes'} ₹${Math.abs(amount).toFixed(2)}`}
+                                                </span>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Column: Recent Activity (Expenses List) */}
                 <div className="col-lg-8">
                     <div className="card border-0 shadow-sm rounded-4 h-100">
                         <div className="card-body p-4">
@@ -129,7 +135,7 @@ function GroupExpenses() {
                                             <div className="d-flex flex-column">
                                                 <span className="fw-bold text-dark">{expense.description}</span>
                                                 <span className="text-muted extra-small">
-                                                    Paid by <span className="fw-medium">{expense.payerEmail.split('@')[0]}</span>
+                                                    Paid by <span className="fw-medium">{expense.payerEmail === userDetails?.email ? 'You' : expense.payerEmail.split('@')[0]}</span>
                                                     {' • '}{new Date(expense.date).toLocaleDateString()}
                                                 </span>
                                             </div>
@@ -146,9 +152,8 @@ function GroupExpenses() {
                 </div>
             </div>
 
-            {/* Modal for Adding Expense */}
-            <AddExpenseModal 
-                show={showAddModal} 
+            <AddExpenseModal
+                show={showAddModal}
                 onHide={() => setShowAddModal(false)}
                 groupId={groupId}
                 members={group.membersEmail || []}

@@ -1,7 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import AppLayout from "./components/AppLayout";
+import Profile from "./pages/Profile";
 import { useEffect, useState } from "react";
 import Logout from "./pages/Logout";
 import UserLayout from "./components/UserLayout";
@@ -65,6 +67,19 @@ function App() {
                     )
                 }
             />
+
+            <Route
+                path="/profile"
+                element={
+                    userDetails ? (
+                        <UserLayout>
+                            <Profile />
+                        </UserLayout>
+                    ) : (
+                        <Navigate to="/login" />
+                    )
+                }
+            />
             <Route
                 path="/login"
                 element={
@@ -73,6 +88,18 @@ function App() {
                     ) : (
                         <AppLayout>
                             <Login />
+                        </AppLayout>
+                    )
+                }
+            />
+            <Route
+                path="/register"
+                element={
+                    userDetails ? (
+                        <Navigate to="/dashboard" />
+                    ) : (
+                        <AppLayout>
+                            <Register />
                         </AppLayout>
                     )
                 }

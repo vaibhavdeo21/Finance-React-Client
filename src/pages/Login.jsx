@@ -136,9 +136,8 @@ function Login() {
                                         Email Address
                                     </label>
                                     <input
-                                        className={`form-control form-control-lg rounded-3 fs-6 ${
-                                            errors.email ? "is-invalid" : ""
-                                        }`}
+                                        className={`form-control form-control-lg rounded-3 fs-6 ${errors.email ? "is-invalid" : ""
+                                            }`}
                                         type="email"
                                         name="email"
                                         placeholder="name@example.com"
@@ -156,9 +155,8 @@ function Login() {
                                         Password
                                     </label>
                                     <input
-                                        className={`form-control form-control-lg rounded-3 fs-6 ${
-                                            errors.password ? "is-invalid" : ""
-                                        }`}
+                                        className={`form-control form-control-lg rounded-3 fs-6 ${errors.password ? "is-invalid" : ""
+                                            }`}
                                         type="password"
                                         name="password"
                                         placeholder="Enter your password"
@@ -171,10 +169,16 @@ function Login() {
                                     )}
                                 </div>
 
-                                <div className="d-flex justify-content-center">
-                                    <button className="btn btn-primary w-100 btn-md rounded-pill fw-bold shadow-sm mb-4">
+                                <div className="d-flex flex-column align-items-center">
+                                    <button className="btn btn-primary w-100 btn-md rounded-pill fw-bold shadow-sm mb-3">
                                         Sign In
                                     </button>
+                                    <p className="text-center small text-muted">
+                                        Don't have an account?{" "}
+                                        <Link to="/register" className="text-primary fw-bold text-decoration-none">
+                                            Get Started
+                                        </Link>
+                                    </p>
                                 </div>
                             </form>
 
