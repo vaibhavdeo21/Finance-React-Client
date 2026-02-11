@@ -1,13 +1,19 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom"; // Essential for resolving the groupId ReferenceError
 import { serverEndpoint } from "../config/appConfig";
 import axios from "axios";
+import { useSelector } from "react-redux";
 import Can from "../components/Can";
 
 function ManageUsers() {
+    const { groupId } = useParams(); // Extracts the current ID from the URL path
+    const userDetails = useSelector((state) => state.userDetails); 
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState([]); 
+    const [groups, setGroups] = useState([]); 
+    const [selectedGroup, setSelectedGroup] = useState(null);
     const [message, setMessage] = useState(null);
 
     const [formData, setFormData] = useState({
@@ -16,23 +22,75 @@ function ManageUsers() {
         role: "Select",
     });
 
-    const fetchUsers = async () => {
+    // Fetch details for a specific group to refresh member state
+    const fetchGroupDetails = async (id) => {
         try {
-            const response = await axios.get(`${serverEndpoint}/users/`, {
+            const targetId = id || selectedGroup?._id || groupId;
+            if (!targetId) return;
+
+            const response = await axios.get(`${serverEndpoint}/groups/my-groups`, {
                 withCredentials: true,
             });
-            setUsers(response.data.users);
+            
+            const refreshedGroup = response.data.groups?.find(g => g._id === targetId);
+            if (refreshedGroup) {
+                setSelectedGroup(refreshedGroup);
+                const membersList = refreshedGroup.members && refreshedGroup.members.length > 0
+                    ? refreshedGroup.members
+                    : (refreshedGroup.membersEmail || []).map(email => ({ 
+                        email, 
+                        role: email === refreshedGroup.adminEmail ? 'admin' : 'viewer' 
+                    }));
+                setUsers(membersList);
+            }
+        } catch (error) {
+            console.error("Error refreshing group details:", error);
+        }
+    };
+
+    const fetchAdminGroups = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`${serverEndpoint}/groups/my-groups`, {
+                withCredentials: true,
+            });
+
+            const adminOnlyGroups = (response.data.groups || []).filter(
+                g => (g.adminId?._id || g.adminId) === userDetails?._id
+            );
+
+            setGroups(adminOnlyGroups);
+            
+            // If we have a groupId in the URL, auto-select that group
+            if (groupId) {
+                const autoSelected = adminOnlyGroups.find(g => g._id === groupId);
+                if (autoSelected) handleGroupSelect(autoSelected);
+            }
         } catch (error) {
             console.log(error);
-            setErrors({ message: "Unable to fetch users, please try again" });
+            setErrors({ message: "Unable to fetch groups" });
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        if (userDetails?._id) {
+            fetchAdminGroups();
+        }
+    }, [userDetails, groupId]);
+
+    const handleGroupSelect = (group) => {
+        setSelectedGroup(group);
+        const membersList = group.members && group.members.length > 0
+            ? group.members
+            : (group.membersEmail || []).map(email => ({ 
+                email, 
+                role: email === group.adminEmail ? 'admin' : 'viewer' 
+            }));
+
+        setUsers(membersList);
+    };
 
     const handleChange = (e) => {
         const name = e.target.name;
@@ -47,11 +105,7 @@ function ManageUsers() {
         let isValid = true;
         let newErrors = {};
 
-        if (formData.name.length === 0) {
-            isValid = false;
-            newErrors.name = "Name is required";
-        }
-        if (formData.email.length === 0) {
+        if (!formData.email) {
             isValid = false;
             newErrors.email = "Email is required";
         }
@@ -66,46 +120,65 @@ function ManageUsers() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!selectedGroup) {
+            setErrors({ message: "Please select a group first" });
+            return;
+        }
+
         if (validate()) {
             setActionLoading(true);
             try {
-                const response = await axios.post(
-                    `${serverEndpoint}/users/`,
-                    {
-                        name: formData.name,
-                        email: formData.email,
-                        role: formData.role,
-                    },
+                await axios.post(
+                    `${serverEndpoint}/groups/${selectedGroup._id}/add-member`,
+                    { email: formData.email.toLowerCase(), role: formData.role },
                     { withCredentials: true }
                 );
-                setUsers([...users, response.data.user]);
-                setMessage("User added!");
+
+                setMessage("Member added to group!");
                 setFormData({ name: "", email: "", role: "Select" });
-                // Auto-clear message
+                fetchGroupDetails(selectedGroup._id); // Refresh list from DB
                 setTimeout(() => setMessage(null), 3000);
             } catch (error) {
-                console.log(error);
-                setErrors({ message: "Unable to add user, please try again" });
+                const errorMsg = error.response?.data?.message || "Unable to add member";
+                setErrors({ message: errorMsg });
             } finally {
                 setActionLoading(false);
             }
         }
     };
 
-    // NEW: Handle Delete Functionality
-    const handleDelete = async (userId) => {
-        if (!window.confirm("Are you sure you want to remove this user?")) return;
-        
+    const handleUpdateRole = async (email, newRole) => {
         try {
-            await axios.delete(`${serverEndpoint}/users/${userId}`, {
-                withCredentials: true,
-            });
-            setUsers(users.filter(u => u._id !== userId));
-            setMessage("User removed successfully");
+            const targetGroupId = selectedGroup?._id || groupId;
+            if (!targetGroupId) throw new Error("Group ID not found");
+
+            await axios.patch(
+                `${serverEndpoint}/groups/${targetGroupId}/member-role`,
+                { email, role: newRole },
+                { withCredentials: true }
+            );
+
+            fetchGroupDetails(targetGroupId); // Refresh UI with updated role
+            alert(`User role updated to ${newRole}`);
+        } catch (error) {
+            console.error("Role update failed:", error);
+            alert(error.response?.data?.message || "Failed to update role");
+        }
+    };
+
+    const handleDelete = async (userEmail) => {
+        if (!window.confirm(`Remove ${userEmail} from ${selectedGroup.name}?`)) return;
+
+        try {
+            await axios.post(`${serverEndpoint}/groups/${selectedGroup._id}/remove-member`,
+                { email: userEmail },
+                { withCredentials: true }
+            );
+            setUsers(users.filter(u => (u.email || u) !== userEmail));
+            setMessage("Member removed from group");
             setTimeout(() => setMessage(null), 3000);
         } catch (error) {
-            console.log(error);
-            setErrors({ message: "Failed to delete user" });
+            setErrors({ message: "Failed to remove member" });
         }
     };
 
@@ -137,172 +210,146 @@ function ManageUsers() {
             <div className="row align-items-center mb-5">
                 <div className="col-md-8 text-center text-md-start mb-3 mb-md-0">
                     <h2 className="fw-bold text-dark display-6">
-                        Manage <span className="text-primary">Users</span>
+                        Group <span className="text-primary">Permissions</span>
                     </h2>
                     <p className="text-muted mb-0">
-                        View and manage all the users along with their permissions
+                        Select a group you created to manage member roles and access.
                     </p>
                 </div>
             </div>
 
             <div className="row g-4">
-                {/* Add user form - Protected by RBAC */}
-                <Can requiredPermission="canCreateUsers">
-                    <div className="col-md-4">
-                        <div className="card shadow-sm border-0 rounded-4">
+                {/* SIDEBAR: Group Selection */}
+                <div className="col-md-4">
+                    <div className="card shadow-sm border-0 rounded-4">
+                        <div className="card-header bg-white border-0 pt-4 px-4">
+                            <h5 className="fw-bold mb-0">Admin Groups</h5>
+                        </div>
+                        <div className="card-body p-3">
+                            <div className="list-group list-group-flush">
+                                {groups.length === 0 ? (
+                                    <p className="text-muted small p-2">You haven't created any groups yet.</p>
+                                ) : (
+                                    groups.map(g => (
+                                        <button
+                                            key={g._id}
+                                            onClick={() => handleGroupSelect(g)}
+                                            className={`list-group-item list-group-item-action border-0 rounded-3 mb-2 py-3 fw-bold d-flex align-items-center ${selectedGroup?._id === g._id ? 'bg-primary text-white shadow' : 'bg-light text-dark'}`}
+                                        >
+                                            <i className={`bi bi-people-fill me-3 ${selectedGroup?._id === g._id ? 'text-white' : 'text-primary'}`}></i>
+                                            {g.name}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {selectedGroup && (
+                        <div className="card shadow-sm border-0 rounded-4 mt-4">
                             <div className="card-header bg-white border-0 pt-4 px-4">
-                                <h5 className="fw-bold mb-0">Add Member</h5>
+                                <h5 className="fw-bold mb-0 small text-uppercase">Add to {selectedGroup.name}</h5>
                             </div>
                             <div className="card-body p-4">
                                 <form onSubmit={handleSubmit}>
                                     <div className="mb-3">
-                                        <label className="form-label small fw-bold text-secondary text-uppercase mb-2">Name</label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            placeholder="Enter name"
-                                            className={
-                                                errors.name
-                                                    ? "form-control form-control-lg bg-light border-0 is-invalid fs-6"
-                                                    : "form-control form-control-lg bg-light border-0 fs-6"
-                                            }
-                                            value={formData.name}
-                                            onChange={handleChange}
-                                        />
-                                        {errors.name && (
-                                            <div className="invalid-feedback ps-1">
-                                                {errors.name}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="mb-3">
-                                        <label className="form-label small fw-bold text-secondary text-uppercase mb-2">Email</label>
                                         <input
                                             type="text"
                                             name="email"
-                                            placeholder="email@example.com"
-                                            className={
-                                                errors.email
-                                                    ? "form-control form-control-lg bg-light border-0 is-invalid fs-6"
-                                                    : "form-control form-control-lg bg-light border-0 fs-6"
-                                            }
+                                            placeholder="Enter email address"
+                                            className="form-control bg-light border-0"
                                             value={formData.email}
                                             onChange={handleChange}
                                         />
-                                        {errors.email && (
-                                            <div className="invalid-feedback ps-1">
-                                                {errors.email}
-                                            </div>
-                                        )}
                                     </div>
-
-                                    <div className="mb-4">
-                                        <label className="form-label small fw-bold text-secondary text-uppercase mb-2">Role</label>
-                                        <select
-                                            name="role"
-                                            className={
-                                                errors.role
-                                                    ? "form-select form-select-lg bg-light border-0 is-invalid fs-6"
-                                                    : "form-select form-select-lg bg-light border-0 fs-6"
-                                            }
-                                            value={formData.role}
-                                            onChange={handleChange}
-                                        >
-                                            <option value="Select">Select Role</option>
+                                    <div className="mb-3">
+                                        <select name="role" className="form-select bg-light border-0" value={formData.role} onChange={handleChange}>
+                                            <option value="Select">Assign Role</option>
+                                            <option value="admin">Admin</option>
                                             <option value="manager">Manager</option>
                                             <option value="viewer">Viewer</option>
                                         </select>
-                                        {errors.role && (
-                                            <div className="invalid-feedback ps-1">
-                                                {errors.role}
-                                            </div>
-                                        )}
                                     </div>
-
-                                    <div className="mb-3">
-                                        <button className="btn btn-primary btn-lg w-100 fw-bold rounded-pill shadow-sm" disabled={actionLoading}>
-                                            {actionLoading ? (
-                                                <div
-                                                    className="spinner-border spinner-border-sm"
-                                                    role="status"
-                                                >
-                                                    <span className="visually-hidden">
-                                                        Loading...
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <>Add Member</>
-                                            )}
-                                        </button>
-                                    </div>
+                                    <button className="btn btn-primary w-100 fw-bold rounded-pill" disabled={actionLoading}>
+                                        {actionLoading ? "Adding..." : "Add Member"}
+                                    </button>
                                 </form>
                             </div>
                         </div>
-                    </div>
-                </Can>
+                    )}
+                </div>
 
-                {/* View users table */}
+                {/* MAIN AREA: Members Table */}
                 <div className="col-md-8">
-                    <div className="card shadow-sm border-0 rounded-4 overflow-hidden">
-                        <div className="card-header bg-white border-0 pt-4 px-4">
-                            <h5 className="fw-bold mb-0">Team Members</h5>
+                    {!selectedGroup ? (
+                        <div className="text-center py-5 bg-light rounded-4 border border-dashed h-100 d-flex flex-column align-items-center justify-content-center">
+                            <i className="bi bi-arrow-left-circle display-1 text-muted mb-3 opacity-25"></i>
+                            <h5 className="text-muted fw-bold">Select a group to manage</h5>
+                            <p className="small text-muted">You can only manage members of groups you created.</p>
                         </div>
-                        <div className="card-body p-0">
-                            <div className="table-responsive">
-                                <table className="table table-hover align-middle mb-0">
-                                    <thead className="table-light">
-                                        <tr>
-                                            <th className="px-4 py-3 border-0">Name</th>
-                                            <th className="py-3 border-0">Email</th>
-                                            <th className="py-3 border-0">Role</th>
-                                            <th className="text-center py-3 border-0 px-4">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {users.length === 0 && (
+                    ) : (
+                        <div className="card shadow-sm border-0 rounded-4 overflow-hidden">
+                            <div className="card-header bg-white border-0 pt-4 px-4">
+                                <h5 className="fw-bold mb-0">Group Members</h5>
+                            </div>
+                            <div className="card-body p-0">
+                                <div className="table-responsive">
+                                    <table className="table table-hover align-middle mb-0">
+                                        <thead className="table-light">
                                             <tr>
-                                                <td
-                                                    colSpan={4}
-                                                    className="text-center py-5 text-muted"
-                                                >
-                                                    <i className="bi bi-people display-4 d-block mb-2 opacity-25"></i>
-                                                    No users found. Start by adding one!
-                                                </td>
+                                                <th className="px-4 py-3 border-0">Email</th>
+                                                <th className="py-3 border-0">Role</th>
+                                                <th className="text-center py-3 border-0 px-4">Actions</th>
                                             </tr>
-                                        )}
-                                        {users.length > 0 &&
-                                            users.map((user) => (
-                                                <tr key={user._id}>
-                                                    <td className="px-4 align-middle fw-medium">
-                                                        {user.name}
-                                                    </td>
-                                                    <td className="align-middle text-muted small">
-                                                        {user.email}
-                                                    </td>
-                                                    <td className="align-middle">
-                                                        <span className={`badge rounded-pill px-3 py-2 ${user.role === 'manager' ? 'bg-primary-subtle text-primary' : 'bg-light text-dark border'}`}>
-                                                            {user.role}
-                                                        </span>
-                                                    </td>
-                                                    <td className="align-middle text-center px-4">
-                                                        <button className="btn btn-sm btn-link text-primary fw-bold text-decoration-none me-2">
-                                                            Edit
-                                                        </button>
-                                                        <button 
-                                                            className="btn btn-sm btn-link text-danger fw-bold text-decoration-none"
-                                                            onClick={() => handleDelete(user._id)}
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </td>
+                                        </thead>
+                                        <tbody>
+                                            {users.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={3} className="text-center py-5 text-muted small">No members found in this group.</td>
                                                 </tr>
-                                            ))}
-                                    </tbody>
-                                </table>
+                                            ) : (
+                                                users.map((member) => {
+                                                    const email = typeof member === 'string' ? member : member.email;
+                                                    const role = member.role || "viewer";
+                                                    const isThisMemberTheAdmin = email === selectedGroup.adminEmail;
+
+                                                    return (
+                                                        <tr key={email}>
+                                                            <td className="px-4 align-middle fw-medium">
+                                                                {email} {isThisMemberTheAdmin && <span className="badge bg-dark rounded-pill ms-2 fw-bold" style={{ fontSize: '10px' }}>OWNER</span>}
+                                                            </td>
+                                                            <td className="align-middle">
+                                                                <select
+                                                                    className="form-select form-select-sm bg-light border-0 fw-bold"
+                                                                    style={{ width: '110px' }}
+                                                                    value={role} 
+                                                                    onChange={(e) => handleUpdateRole(email, e.target.value)}
+                                                                >
+                                                                    <option value="admin">Admin</option>
+                                                                    <option value="manager">Manager</option>
+                                                                    <option value="viewer">Viewer</option>
+                                                                </select>
+                                                            </td>
+                                                            <td className="align-middle text-center px-4">
+                                                                {!isThisMemberTheAdmin && (
+                                                                    <button
+                                                                        className="btn btn-sm btn-link text-danger fw-bold text-decoration-none"
+                                                                        onClick={() => handleDelete(email)}
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>

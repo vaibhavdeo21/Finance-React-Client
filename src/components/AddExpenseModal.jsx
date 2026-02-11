@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useSelector } from "react-redux"; // Import useSelector to get current user
+import { useSelector } from "react-redux"; 
 import { serverEndpoint } from "../config/appConfig";
 
 function AddExpenseModal({ show, onHide, groupId, members, onSuccess }) {
@@ -18,18 +18,26 @@ function AddExpenseModal({ show, onHide, groupId, members, onSuccess }) {
     useEffect(() => {
         if (members && members.length > 0) {
             // FIX: Default to logged-in user if they are in the group, otherwise first member
-            const defaultPayer = members.find(m => m === userDetails?.email) || members[0];
+            // Handles both string arrays and object arrays for backwards compatibility
+            const memberEmails = members.map(m => typeof m === 'string' ? m : m.email);
+            const defaultPayer = memberEmails.find(email => email === userDetails?.email) || memberEmails[0];
+            
             setPayer(defaultPayer); 
             resetSplits(members);
         }
-    }, [members, userDetails]); // Added userDetails as dependency
+    }, [members, userDetails, show]); 
 
     const resetSplits = (currentMembers) => {
-        const initialSplits = currentMembers.map(email => ({
-            email,
-            amount: 0,
-            included: true
-        }));
+        const initialSplits = currentMembers.map(member => {
+            const email = typeof member === 'string' ? member : member.email;
+            const role = typeof member === 'string' ? 'viewer' : (member.role || 'viewer');
+            return {
+                email,
+                role,
+                amount: 0,
+                included: true
+            };
+        });
         setSplitDetails(initialSplits);
     };
 
@@ -81,7 +89,7 @@ function AddExpenseModal({ show, onHide, groupId, members, onSuccess }) {
                     groupId,
                     description,
                     amount: parseFloat(amount),
-                    payerEmail: payer, // This now correctly sends the selected payer
+                    payerEmail: payer,
                     splits: finalSplits
                 },
                 { withCredentials: true }
@@ -129,11 +137,15 @@ function AddExpenseModal({ show, onHide, groupId, members, onSuccess }) {
                             <div className="mb-4">
                                 <label className="form-label small fw-bold text-muted">Who Paid?</label>
                                 <select className="form-select bg-light border-0" value={payer} onChange={e => setPayer(e.target.value)}>
-                                    {members.map(m => (
-                                        <option key={m} value={m}>
-                                            {m === userDetails?.email ? `You (${m})` : m}
-                                        </option>
-                                    ))}
+                                    {members.map(m => {
+                                        const email = typeof m === 'string' ? m : m.email;
+                                        const role = typeof m === 'string' ? '' : `(${m.role})`;
+                                        return (
+                                            <option key={email} value={email}>
+                                                {email === userDetails?.email ? `You ${role}` : `${email.split('@')[0]} ${role}`}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
 
@@ -166,6 +178,11 @@ function AddExpenseModal({ show, onHide, groupId, members, onSuccess }) {
                                             </div>
                                             <div className="flex-grow-1 text-truncate small fw-medium">
                                                 {split.email === userDetails?.email ? "You" : split.email.split('@')[0]}
+                                                {split.role !== 'viewer' && (
+                                                    <span className="badge bg-secondary-subtle text-secondary extra-small ms-2 px-2 py-1 rounded-pill" style={{fontSize: '9px'}}>
+                                                        {split.role.toUpperCase()}
+                                                    </span>
+                                                )}
                                                 <div className="extra-small text-muted">{split.email}</div>
                                             </div>
                                             <div className="input-group input-group-sm" style={{ width: "130px" }}>
