@@ -12,12 +12,13 @@ import { serverEndpoint } from "./config/appConfig";
 import { useSelector, useDispatch } from "react-redux";
 import { SET_USER } from "./redux/user/action";
 import Groups from "./pages/Groups";
-import Dashboard from "./pages/Dashboard"; // NEW IMPORT
+import Dashboard from "./pages/Dashboard"; 
 import GroupExpenses from "./pages/GroupExpenses";
 import ManageUsers from "./pages/ManageUsers";
 import ProtectedRoute from "./rbac/ProtectedRoute";
 import UnauthorizedAccess from "./components/errors/UnauthorizedAccess";
 import ManagePayments from "./pages/ManagePayments";
+import ManageSubscription from "./pages/ManageSubscription"; 
 
 function App() {
     const dispatch = useDispatch();
@@ -170,6 +171,22 @@ function App() {
                         <ProtectedRoute roles={["admin"]}>
                             <UserLayout>
                                 <ManagePayments />
+                            </UserLayout>
+                        </ProtectedRoute>
+                    ) : (
+                        <Navigate to="/login" />
+                    )
+                }
+            />
+            
+            {/* NEW: Manage Subscription Route */}
+            <Route
+                path="/manage-subscription"
+                element={
+                    userDetails ? (
+                        <ProtectedRoute roles={["admin"]}>
+                            <UserLayout>
+                                <ManageSubscription />
                             </UserLayout>
                         </ProtectedRoute>
                     ) : (

@@ -5,21 +5,17 @@ function UserHeader() {
     const user = useSelector((state) => state.userDetails);
     const location = useLocation();
 
-    // Helper to set active class - Standardized to avoid solid blue blocks
     const isActive = (path) =>
         location.pathname === path
-            ? "bg-light text-primary fw-bold shadow-sm" // Subtle background instead of solid blue
-            : "text-dark fw-bold"; // Ensures all labels have uniform bold weight
+            ? "bg-dark text-white shadow-sm fw-bold rounded-2 px-3" 
+            : "text-dark fw-bold"; 
 
     return (
         <nav className="navbar navbar-expand-lg bg-white sticky-top border-bottom shadow-sm py-2">
             <div className="container">
                 {/* Brand Logo */}
-                <Link
-                    className="navbar-brand fw-bold fs-4 d-flex align-items-center"
-                    to="/dashboard"
-                >
-                    <span className="text-primary">Merge</span>Money
+                <Link className="navbar-brand fw-bold fs-4 d-flex align-items-center" to="/dashboard">
+                    <span style={{ color: "var(--gold-primary)" }}>Merge</span>Money
                 </Link>
 
                 <button
@@ -87,10 +83,17 @@ function UserHeader() {
                                         <i className="bi bi-people-fill me-2 fs-6"></i> Manage Users
                                     </Link>
                                 </li>
-                                
+
                                 <li>
                                     <Link className={`dropdown-item py-2 rounded-2 d-flex align-items-center mb-1 ${isActive("/manage-payments")}`} to="/manage-payments">
-                                        <i className="bi bi-credit-card-fill me-2 fs-6"></i> Payments & Subscription
+                                        <i className="bi bi-credit-card-fill me-2 fs-6"></i> Payments
+                                    </Link>
+                                </li>
+
+                                {/* NEW: Manage Subscription Link */}
+                                <li>
+                                    <Link className={`dropdown-item py-2 rounded-2 d-flex align-items-center mb-1 ${isActive("/manage-subscription")}`} to="/manage-subscription">
+                                        <i className="bi bi-person-check-fill me-2 fs-6"></i> Manage Subscriptions
                                     </Link>
                                 </li>
 
