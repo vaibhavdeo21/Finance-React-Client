@@ -5,11 +5,11 @@ function UserHeader() {
     const user = useSelector((state) => state.userDetails);
     const location = useLocation();
 
-    // Helper to set active class
+    // Helper to set active class - Standardized to avoid solid blue blocks
     const isActive = (path) =>
         location.pathname === path
-            ? "active fw-bold text-primary"
-            : "text-secondary";
+            ? "bg-light text-primary fw-bold shadow-sm" // Subtle background instead of solid blue
+            : "text-dark fw-bold"; // Ensures all labels have uniform bold weight
 
     return (
         <nav className="navbar navbar-expand-lg bg-white sticky-top border-bottom shadow-sm py-2">
@@ -41,7 +41,7 @@ function UserHeader() {
                     <ul className="navbar-nav ms-auto align-items-center">
                         <li className="nav-item dropdown">
                             <Link
-                                className="nav-link dropdown-toggle d-flex align-items-center bg-light rounded-pill px-3 py-1 border"
+                                className="nav-link dropdown-toggle d-flex align-items-center bg-light rounded-pill px-3 py-1 border shadow-sm"
                                 to="#"
                                 role="button"
                                 data-bs-toggle="dropdown"
@@ -59,51 +59,50 @@ function UserHeader() {
                                         ? user.name.charAt(0).toUpperCase()
                                         : "U"}
                                 </div>
-                                <span className="text-dark fw-medium small">
+                                <span className="text-dark fw-bold small">
                                     {user ? user.name : "Account"}
                                 </span>
                             </Link>
-                            <ul className="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 rounded-3">
+                            <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3 p-2">
                                 <li
-                                    className="px-3 py-2 border-bottom mb-1"
-                                    style={{ minWidth: "200px" }}
+                                    className="px-3 py-2 border-bottom mb-2"
+                                    style={{ minWidth: "220px" }}
                                 >
-                                    <p className="mb-0 small fw-bold text-dark">
+                                    <p className="mb-0 extra-small fw-bold text-muted text-uppercase ls-1">
                                         Signed in as
                                     </p>
-                                    <p className="mb-0 small text-muted">
+                                    <p className="mb-0 small fw-bold text-dark text-truncate">
                                         {user?.email}
                                     </p>
                                 </li>
 
                                 <li>
-                                    <Link className={`dropdown-item py-2 fw-medium ${isActive("/profile")}`} to="/profile">
-                                        <i className="bi bi-person-circle me-2"></i> My Profile
+                                    <Link className={`dropdown-item py-2 rounded-2 d-flex align-items-center mb-1 ${isActive("/profile")}`} to="/profile">
+                                        <i className="bi bi-person-circle me-2 fs-6"></i> My Profile
                                     </Link>
                                 </li>
 
-                                {/* Link to Manage Users */}
                                 <li>
-                                    <Link className="dropdown-item py-2 fw-medium" to="/manage-users">
-                                        <i className="bi bi-person-check me-2"></i> Manage Users
+                                    <Link className={`dropdown-item py-2 rounded-2 d-flex align-items-center mb-1 ${isActive("/manage-users")}`} to="/manage-users">
+                                        <i className="bi bi-people-fill me-2 fs-6"></i> Manage Users
                                     </Link>
                                 </li>
                                 
                                 <li>
-                                    <Link className="dropdown-item py-2 fw-medium" to="/manage-payments">
-                                        <i className="bi bi-person-check me-2"></i> Payments & Subscription
+                                    <Link className={`dropdown-item py-2 rounded-2 d-flex align-items-center mb-1 ${isActive("/manage-payments")}`} to="/manage-payments">
+                                        <i className="bi bi-credit-card-fill me-2 fs-6"></i> Payments & Subscription
                                     </Link>
                                 </li>
 
                                 <li>
-                                    <hr className="m-0" />
+                                    <hr className="dropdown-divider my-2" />
                                 </li>
                                 <li>
                                     <Link
-                                        className="dropdown-item py-2 text-danger fw-medium"
+                                        className="dropdown-item py-2 text-danger fw-bold d-flex align-items-center rounded-2"
                                         to="/logout"
                                     >
-                                        <i className="bi bi-box-arrow-right me-2"></i>{" "}
+                                        <i className="bi bi-box-arrow-right me-2 fs-6"></i>{" "}
                                         Sign Out
                                     </Link>
                                 </li>

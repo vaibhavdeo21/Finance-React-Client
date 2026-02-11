@@ -12,6 +12,7 @@ import { serverEndpoint } from "./config/appConfig";
 import { useSelector, useDispatch } from "react-redux";
 import { SET_USER } from "./redux/user/action";
 import Groups from "./pages/Groups";
+import Dashboard from "./pages/Dashboard"; // NEW IMPORT
 import GroupExpenses from "./pages/GroupExpenses";
 import ManageUsers from "./pages/ManageUsers";
 import ProtectedRoute from "./rbac/ProtectedRoute";
@@ -106,8 +107,23 @@ function App() {
                 }
             />
 
+            {/* UPDATED: Points to Dashboard.jsx for Stats + Groups view */}
             <Route
                 path="/dashboard"
+                element={
+                    userDetails ? (
+                        <UserLayout>
+                            <Dashboard />
+                        </UserLayout>
+                    ) : (
+                        <Navigate to="/login" />
+                    )
+                }
+            />
+
+            {/* OPTIONAL: Keep a separate route if you want a full-page groups list */}
+            <Route
+                path="/groups"
                 element={
                     userDetails ? (
                         <UserLayout>
@@ -182,8 +198,6 @@ function App() {
                 element={userDetails ? <Logout /> : <Navigate to="/login" />}
             />
         </Routes>
-
-
     );
 }
 

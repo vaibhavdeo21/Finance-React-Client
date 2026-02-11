@@ -108,7 +108,7 @@ function ManagePayments() {
                     {errors.message}
                 </div>
             )}
-            
+
             {/* Added success message alert [cite: 26] */}
             {message && (
                 <div className="alert alert-success" role="alert">
@@ -119,17 +119,19 @@ function ManagePayments() {
             <h2>Manage Payments</h2>
             <p><strong>Current Credit Balance: </strong>{userProfile.credits || 0}</p>
 
-            <div className="row">
+            <div className="row g-4 mt-2"> {/* g-4 adds consistent spacing between cards */}
                 {CREDITS_PACK.map((credit, index) => (
-                    <div key={index} className="col-auto border m-2 p-2 text-center">
-                        <h4>{credit.credits} Credits</h4>
-                        <p>Buy {credit.credits} Credits for INR {credit.price}</p>
-                        <button
-                            className="btn btn-outline-primary"
-                            onClick={() => { handlePayment(credit.credits); }}
-                        >
-                            Buy Now
-                        </button>
+                    <div key={index} className="col-12 col-md-4">
+                        <div className="card h-100 border shadow-sm rounded-4 text-center p-4">
+                            <h4 className="fw-bold">{credit.credits} Credits</h4>
+                            <p className="text-muted small">Buy {credit.credits} Credits for INR {credit.price}</p>
+                            <button
+                                className="btn btn-outline-primary rounded-pill w-100 mt-auto"
+                                onClick={() => { handlePayment(credit.credits); }}
+                            >
+                                Buy Now
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>

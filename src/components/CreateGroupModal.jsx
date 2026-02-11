@@ -56,6 +56,7 @@ function CreateGroupModal({ show, onHide, onSuccess }) {
 
                 const groupId = response.data.groupId;
 
+                // Pass the new group data back to Dashboard to refresh state
                 onSuccess({
                     name: formData.name,
                     description: formData.description,
@@ -75,7 +76,7 @@ function CreateGroupModal({ show, onHide, onSuccess }) {
             } catch (error) {
                 console.error(error);
                 setErrors({
-                    message: "Something went wrong. Please try again later.",
+                    message: error.response?.data?.message || "Something went wrong. Please try again later.",
                 });
             } finally {
                 setLoading(false);
@@ -92,6 +93,7 @@ function CreateGroupModal({ show, onHide, onSuccess }) {
             style={{
                 backgroundColor: "rgba(15, 23, 42, 0.6)",
                 backdropFilter: "blur(4px)",
+                zIndex: 1060
             }}
         >
             <div className="modal-dialog modal-dialog-centered">
@@ -114,6 +116,14 @@ function CreateGroupModal({ show, onHide, onSuccess }) {
                                 Create a shared space to manage bills with your
                                 friends, roommates, or travel partners.
                             </p>
+
+                            {/* UPDATED: Credit Cost Warning Alert */}
+                            <div className="alert alert-warning d-flex align-items-center py-2 mb-4 border-0 rounded-3">
+                                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                <div className="small">
+                                    <strong>Note:</strong> Creating a group will use <strong>1 Credit</strong> from your balance.
+                                </div>
+                            </div>
 
                             {errors.message && (
                                 <div className="alert alert-danger py-2 small border-0 mb-3">

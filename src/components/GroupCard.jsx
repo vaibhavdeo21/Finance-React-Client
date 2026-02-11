@@ -2,16 +2,23 @@ import axios from "axios";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { serverEndpoint } from "../config/appConfig";
+import { useSelector } from "react-redux";
 
 function GroupCard({ group, onUpdate }) {
+    const userDetails = useSelector((state) => state.userDetails);
     const [showMembers, setShowMembers] = useState(false);
     const [memberEmail, setMemberEmail] = useState("");
+    const [isAdding, setIsAdding] = useState(false);
     const [errors, setErrors] = useState({});
 
     const handleShowMember = () => setShowMembers(!showMembers);
 
+    const isGroupAdmin = userDetails?._id?.toString() === (group.adminId?._id || group.adminId)?.toString();
+
     const handleAddMember = async () => {
         if (memberEmail.length === 0) return;
+        setErrors({});
+        setIsAdding(true);
 
         try {
             const response = await axios.patch(
@@ -23,10 +30,31 @@ function GroupCard({ group, onUpdate }) {
                 { withCredentials: true }
             );
             setMemberEmail("");
-            onUpdate(response.data);
+            onUpdate(); // Trigger refresh
         } catch (error) {
-            console.log(error);
-            setErrors({ message: "Unable to add member" });
+            console.error(error);
+            setErrors({ message: error.response?.data?.message || "Unable to add member" });
+        } finally {
+            setIsAdding(false);
+        }
+    };
+
+    const handleRemoveMember = async (emailToRemove) => {
+        if (!window.confirm(`Remove ${emailToRemove} from the group?`)) return;
+
+        try {
+            await axios.patch(
+                `${serverEndpoint}/groups/members/remove`,
+                {
+                    groupId: group._id,
+                    emails: [emailToRemove],
+                },
+                { withCredentials: true }
+            );
+            onUpdate();
+        } catch (error) {
+            console.error(error);
+            alert("Failed to remove member");
         }
     };
 
@@ -49,7 +77,7 @@ function GroupCard({ group, onUpdate }) {
                 </h5>
 
                 <button
-                    className="btn btn-sm text-primary p-0 text-start fw-medium mb-3"
+                    className="btn btn-sm text-primary p-0 text-start fw-medium mb-3 shadow-none"
                     onClick={handleShowMember}
                 >
                     <i className={`bi bi-people-fill me-1`}></i>
@@ -80,24 +108,38 @@ function GroupCard({ group, onUpdate }) {
                             {group.membersEmail.map((member, index) => (
                                 <div
                                     key={index}
-                                    className="d-flex align-items-center mb-2 last-child-mb-0"
+                                    className="d-flex align-items-center justify-content-between mb-2 last-child-mb-0"
                                 >
-                                    <div
-                                        className="rounded-circle bg-white border d-flex align-items-center justify-content-center me-2 fw-bold text-primary shadow-sm"
-                                        style={{
-                                            width: "24px",
-                                            height: "24px",
-                                            fontSize: "10px",
-                                        }}
-                                    >
-                                        {member.charAt(0).toUpperCase()}
+                                    <div className="d-flex align-items-center">
+                                        <div
+                                            className="rounded-circle bg-white border d-flex align-items-center justify-content-center me-2 fw-bold text-primary shadow-sm"
+                                            style={{
+                                                width: "24px",
+                                                height: "24px",
+                                                fontSize: "10px",
+                                            }}
+                                        >
+                                            {member.charAt(0).toUpperCase()}
+                                        </div>
+                                        <span
+                                            className="small text-dark text-truncate"
+                                            style={{ maxWidth: "150px" }}
+                                            title={member}
+                                        >
+                                            {member === userDetails?.email ? "You" : member}
+                                        </span>
                                     </div>
-                                    <span
-                                        className="small text-dark text-truncate"
-                                        title={member}
-                                    >
-                                        {member}
-                                    </span>
+                                    
+                                    {/* Only Admin can see the Remove button, and cannot remove themselves */}
+                                    {isGroupAdmin && member !== group.adminEmail && (
+                                        <button 
+                                            className="btn btn-link text-danger p-0 border-0" 
+                                            onClick={() => handleRemoveMember(member)}
+                                            style={{ fontSize: '14px' }}
+                                        >
+                                            <i className="bi bi-x-circle-fill"></i>
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -120,13 +162,17 @@ function GroupCard({ group, onUpdate }) {
                             className="form-control bg-light border-0 px-3"
                             placeholder="email@example.com"
                             value={memberEmail}
+                            disabled={isAdding}
                             onChange={(e) => setMemberEmail(e.target.value)}
                         />
                         <button
-                            className="btn btn-primary px-3 fw-bold"
+                            className="btn btn-primary px-3 fw-bold d-flex align-items-center"
                             onClick={handleAddMember}
+                            disabled={isAdding || memberEmail.length === 0}
                         >
-                            Add
+                            {isAdding ? (
+                                <span className="spinner-border spinner-border-sm me-1"></span>
+                            ) : "Add"}
                         </button>
                     </div>
                 </div>
