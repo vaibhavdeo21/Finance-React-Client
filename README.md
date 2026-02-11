@@ -1,6 +1,5 @@
 This documentation explains the React architecture, specifically focusing on how Redux manages the "Global Brain" and how the `Can` component handles permissions visually.
 
-```markdown```
 # 💻 MergeMoney Client (finance-react-client)
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
