@@ -36,15 +36,63 @@ function ManageSubscription() {
         }
     };
 
-    // Handler to initiate subscription (You will connect this to backend next)
+    // Handler for successful Razorpay payment [cite: 1705, 1733]
+    const rzpResponseHandler = async (response) => {
+        try {
+            setLoading(true);
+            const captureSubsResponse = await axios.post(
+                `${serverEndpoint}/payments/capture-subscription`,
+                { subscriptionId: response.razorpay_subscription_id },
+                { withCredentials: true }
+            );
+            setUserProfile(captureSubsResponse.data.user);
+            setMessage("Subscription activated successfully!");
+        } catch (error) {
+            console.log(error);
+            setErrors({ message: "Unable to capture subscription details, contact customer service" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Logic to initiate Razorpay subscription checkout 
     const handleSubscribe = async (planKey) => {
-        alert(`Subscribe logic for ${PLAN_IDS[planKey].planName} coming next!`);
-        // Logic to call /create-subscription endpoint will go here
+        try {
+            setLoading(true);
+            const createSubscriptionResponse = await axios.post(
+                `${serverEndpoint}/payments/create-subscription`,
+                { plan_name: planKey },
+                { withCredentials: true }
+            );
+
+            const subscription = createSubscriptionResponse.data.subscription;
+
+            const options = {
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Ensure this is in your .env
+                name: PLAN_IDS[planKey].planName,
+                description: `Pay INR ${PLAN_IDS[planKey].price} ${PLAN_IDS[planKey].frequency}`,
+                subscription_id: subscription.id,
+                theme: { color: '#3399cc' },
+                handler: (response) => { rzpResponseHandler(response); },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+        } catch (error) {
+            console.log(error);
+            setErrors({ message: 'Unable to process subscription request' });
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         getUserProfile();
     }, []);
+
+    // Derived logic to check if user needs to see subscription options 
+    const notSubscribedStatus = [undefined, 'completed', 'cancelled'];
+    const showSubscription = notSubscribedStatus.includes(userProfile?.subscription?.status);
 
     if (loading) {
         return (
@@ -73,23 +121,30 @@ function ManageSubscription() {
 
             <div className="card shadow-sm border-0 rounded-4">
                 <div className="card-body p-4">
-                    <h5 className="fw-bold mb-3">Current Plan</h5>
+                    <h5 className="fw-bold mb-3">Current Status</h5>
                     
-                    {userProfile?.subscription?.status === 'active' ? (
-                        <div className="alert alert-success d-flex align-items-center">
-                            <i className="bi bi-check-circle-fill me-2"></i>
-                            <div>
-                                <strong>Active</strong> - {userProfile.subscription.planId}
-                                <br/>
-                                <small>Next billing date: {new Date(userProfile.subscription.nextBillDate).toLocaleDateString()}</small>
+                    {/* View for active/authenticated users  */}
+                    {!showSubscription && userProfile?.subscription && (
+                        <div className="alert alert-success">
+                            <div className="row">
+                                <div className="col-md-6">
+                                    <strong>Plan ID:</strong> {userProfile.subscription.planId} <br/>
+                                    <strong>Subscription ID:</strong> {userProfile.subscription.subscriptionId}
+                                </div>
+                                <div className="col-md-6">
+                                    <strong>Status:</strong> <span className="text-uppercase">{userProfile.subscription.status}</span> <br/>
+                                    <strong>Next Billing:</strong> {userProfile.subscription.nextBillDate ? new Date(userProfile.subscription.nextBillDate).toLocaleDateString() : 'N/A'}
+                                </div>
                             </div>
                         </div>
-                    ) : (
-                        <p className="text-muted">You do not have an active subscription.</p>
                     )}
 
-                    {/* Subscription Options - Only show if not active */}
-                    {(!userProfile?.subscription?.status || userProfile?.subscription?.status !== 'active') && (
+                    {showSubscription && (
+                        <p className="text-muted">You do not have an active subscription. Choose a plan below to get started.</p>
+                    )}
+
+                    {/* Show Plan Cards only if user is not currently subscribed  */}
+                    {showSubscription && (
                         <div className="row mt-4">
                             {Object.keys(PLAN_IDS).map((key) => (
                                 <div className="col-md-6 mb-3" key={key}>
