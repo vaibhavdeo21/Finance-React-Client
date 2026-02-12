@@ -130,7 +130,7 @@ function ManageUsers() {
             try {
                 await axios.post(
                     `${serverEndpoint}/groups/${selectedGroup._id}/add-member`,
-                    { email: formData.email.toLowerCase(), role: formData.role },
+                    { email: formData.email.toLowerCase(), role: formData.role.toLowerCase() },
                     { withCredentials: true }
                 );
 
@@ -154,7 +154,7 @@ function ManageUsers() {
 
             await axios.patch(
                 `${serverEndpoint}/groups/${targetGroupId}/member-role`,
-                { email, role: newRole },
+                { email, role: newRole.toLowerCase() },
                 { withCredentials: true }
             );
 
@@ -267,6 +267,7 @@ function ManageUsers() {
                                             <option value="Select">Assign Role</option>
                                             <option value="admin">Admin</option>
                                             <option value="manager">Manager</option>
+                                            <option value="treasurer">Treasurer</option>
                                             <option value="viewer">Viewer</option>
                                         </select>
                                     </div>
@@ -310,7 +311,7 @@ function ManageUsers() {
                                             ) : (
                                                 users.map((member) => {
                                                     const email = typeof member === 'string' ? member : member.email;
-                                                    const role = member.role || "viewer";
+                                                    const role = (member.role || "viewer").toLowerCase();
                                                     const isThisMemberTheAdmin = email === selectedGroup.adminEmail;
 
                                                     return (
@@ -327,6 +328,7 @@ function ManageUsers() {
                                                                 >
                                                                     <option value="admin">Admin</option>
                                                                     <option value="manager">Manager</option>
+                                                                    <option value="treasurer">Treasurer</option>
                                                                     <option value="viewer">Viewer</option>
                                                                 </select>
                                                             </td>

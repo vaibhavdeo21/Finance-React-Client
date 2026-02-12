@@ -74,7 +74,7 @@ function GroupExpenses() {
     };
 
     const handleRequestSettlement = async () => {
-        if (!window.confirm("Notify Admin that you have paid?")) return;
+        if (!window.confirm("Notify the members you owe that you have paid?")) return;
         try {
             await axios.post(`${serverEndpoint}/expenses/request-settle`, { groupId }, { withCredentials: true });
             fetchData();
@@ -83,13 +83,24 @@ function GroupExpenses() {
         }
     };
 
+    const handleApproveMember = async (memberEmail) => {
+        if (!window.confirm(`Confirm that you have received payment from ${memberEmail}?`)) return;
+        try {
+            await axios.post(`${serverEndpoint}/expenses/approve-member`, { groupId, memberEmail }, { withCredentials: true });
+            fetchData();
+        } catch (error) {
+            alert(error.response?.data?.message || "Failed to approve member settlement");
+        }
+    };
+
+    // UPDATED: This is now the FINAL group closure button
     const handleConfirmSettlement = async () => {
-        if (!window.confirm("Confirm money received and settle all dues?")) return;
+        if (!window.confirm("Final Step: Confirm all money received and close this group history?")) return;
         try {
             await axios.post(`${serverEndpoint}/expenses/confirm-settle`, { groupId }, { withCredentials: true });
             fetchData();
         } catch (error) {
-            alert("Failed to confirm settlement");
+            alert("Failed to close group");
         }
     };
 
@@ -122,29 +133,34 @@ function GroupExpenses() {
     if (!group) return <div className="p-5 text-center">Group not found or Access Denied</div>;
 
 
-    // NEW LOGIC (checks if user is creator OR has the Admin role)
-    // IMPROVED LOGIC: Check by email and handle case sensitivity
+    // --- PERMISSION GATE LOGIC ---
     const currentMember = group.members?.find(
         (m) => m.email?.toLowerCase() === userDetails?.email?.toLowerCase()
     );
 
-    const userRole = currentMember?.role?.toLowerCase();
+    const userRole = currentMember?.role?.toLowerCase() || "viewer";
     const isOwner = userDetails?._id?.toString() === (group.adminId?._id || group.adminId)?.toString();
 
-    // 1. General Admin Rights (Settle, Reopen, Budget)
-    const canManageGroup = isOwner || userRole === "admin" || userRole === "manager";
+    // canAddOrRequest: Treasurer, Manager, Admin, and Owner
+    const canAddOrRequest = isOwner || ["admin", "manager", "treasurer"].includes(userRole);
 
-    // 2. High-Level Rights (Delete) - EXCLUDES manager
+    // canApproveSettlement: Only Manager, Admin, and Owner (Treasurer excluded)
+    const canApproveSettlement = isOwner || ["admin", "manager"].includes(userRole);
+
+    // canDeleteGroup: Strictly for Admin and Owner
     const canDeleteGroup = isOwner || userRole === "admin";
 
-    const currentUserMemberData = group.members?.find(
-        (m) => m.email?.toLowerCase() === userDetails?.email?.toLowerCase()
-    );
+    // --- RECEIVER LOGIC: Am I currently owed money? ---
+    const myBalance = balances[userDetails?.email]?.amount || 0;
+    const amIReceiver = myBalance > 0.01;
 
-    const isGroupAdmin =
-        (userDetails?._id?.toString() === (group.adminId?._id || group.adminId)?.toString()) ||
-        (currentUserMemberData?.role?.toLowerCase() === "admin") ||
-        (currentUserMemberData?.role?.toLowerCase() === "manager");
+    // --- LOGIC FOR FINAL CLOSURE BUTTON ---
+    // Check if everyone who owes money (amount < 0) has a 'confirmed' status
+    const debtors = Object.entries(balances).filter(([_, data]) => data.amount < -0.01);
+    const allDebtorsConfirmed = debtors.length > 0 && debtors.every(([email, _]) => {
+        const member = group.members.find(m => m.email === email);
+        return member?.settlementStatus === 'confirmed';
+    });
 
     // Calculations for Header & Budgeting
     const totalGroupSpending = expenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -175,7 +191,7 @@ function GroupExpenses() {
                                 Spent: ₹{totalGroupSpending.toLocaleString()} / {budgetGoal > 0 ? `₹${budgetGoal.toLocaleString()}` : "No Limit"}
                             </span>
 
-                            {isGroupAdmin && (
+                            {canAddOrRequest && (
                                 <div className="d-flex gap-1">
                                     <button
                                         className={`btn btn-sm rounded-pill px-2 d-flex align-items-center justify-content-center border-0 shadow-sm ${isOverBudget ? 'btn-light text-danger' : 'btn-primary text-white'}`}
@@ -213,25 +229,14 @@ function GroupExpenses() {
                 </div>
 
                 <div className="d-flex gap-2 flex-shrink-0">
-                    {!group.paymentStatus?.isPaid && !group.paymentStatus?.isPendingApproval && (
-                        <button className="btn btn-success rounded-pill px-4 shadow-sm fw-bold" onClick={handleRequestSettlement}>
-                            <i className="bi bi-cash me-2"></i>Settle Up
+                    {/* FINAL SETTLEMENT BUTTON: Only appears when all individual payments are verified by receivers */}
+                    {allDebtorsConfirmed && canApproveSettlement && !group.paymentStatus?.isPaid && (
+                        <button className="btn btn-success rounded-pill px-4 shadow-sm fw-bold border-3 border-white animate__animated animate__pulse animate__infinite" onClick={handleConfirmSettlement}>
+                            <i className="bi bi-check-all me-2"></i>Close Group & Settle All
                         </button>
                     )}
 
-                    {group.paymentStatus?.isPendingApproval && isGroupAdmin && (
-                        <button className="btn btn-warning rounded-pill px-4 shadow-sm fw-bold" onClick={handleConfirmSettlement}>
-                            <i className="bi bi-check-all me-2"></i>Confirm Settlement
-                        </button>
-                    )}
-
-                    {group.paymentStatus?.isPendingApproval && !isGroupAdmin && (
-                        <span className="badge bg-light text-dark border rounded-pill px-3 d-flex align-items-center fw-bold">
-                            Awaiting Admin Approval
-                        </span>
-                    )}
-
-                    {group.paymentStatus?.isPaid && isGroupAdmin && (
+                    {group.paymentStatus?.isPaid && canApproveSettlement && (
                         <button className="btn btn-outline-danger rounded-pill px-4 shadow-sm fw-bold" onClick={handleReopen}>
                             <i className="bi bi-arrow-counterclockwise me-2"></i>Re-open Group
                         </button>
@@ -247,9 +252,11 @@ function GroupExpenses() {
                         </button>
                     )}
 
-                    <button className="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onClick={() => setShowAddModal(true)}>
-                        <i className="bi bi-plus-lg me-2"></i>Add Expense
-                    </button>
+                    {canAddOrRequest && (
+                        <button className="btn btn-primary rounded-pill px-4 shadow-sm fw-bold" onClick={() => setShowAddModal(true)}>
+                            <i className="bi bi-plus-lg me-2"></i>Add Expense
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -273,25 +280,77 @@ function GroupExpenses() {
                             ) : (
                                 <ul className="list-group list-group-flush">
                                     {Object.entries(balances).map(([email, data]) => {
-                                        const isMe = email === userDetails?.email;
+                                        // Normalize emails for comparison
+                                        const userEmailKey = email.toLowerCase();
+                                        const currentLoggedInEmail = userDetails?.email?.toLowerCase();
+                                        const isMe = userEmailKey === currentLoggedInEmail;
+
                                         const displayName = isMe ? "You" : (data.name || email.split('@')[0]);
                                         const amount = data.amount || 0;
 
+                                        // FIND MEMBER DATA SAFELY
+                                        const memberData = group.members?.find(m =>
+                                            m.email?.toLowerCase() === userEmailKey
+                                        );
+                                        const status = memberData?.settlementStatus || "none";
+
+                                        // CHECK: Am I (the Test User) the receiver of this specific debt?
+                                        const amIOwedMoney = (balances[userDetails?.email]?.amount || 0) > 0.01;
+
                                         return (
-                                            <li key={email} className="list-group-item px-0 d-flex justify-content-between align-items-center">
-                                                <div className="d-flex align-items-center gap-2">
-                                                    <div className="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-secondary" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
-                                                        {displayName.charAt(0).toUpperCase()}
+                                            <li key={email} className="list-group-item px-0 py-3 d-flex flex-column gap-2 border-bottom">
+                                                <div className="d-flex justify-content-between align-items-center">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <div className="rounded-circle bg-light border d-flex align-items-center justify-content-center fw-bold text-secondary" style={{ width: '32px', height: '32px' }}>
+                                                            {displayName.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="small text-truncate fw-medium" style={{ maxWidth: '120px' }}>
+                                                            {displayName}
+                                                        </div>
                                                     </div>
-                                                    <div className="small text-truncate fw-medium" style={{ maxWidth: '120px' }} title={email}>
-                                                        {displayName}
-                                                    </div>
+                                                    <span className={`fw-bold small ${amount >= 0 ? 'text-success' : 'text-danger'}`}>
+                                                        {amount >= 0 ? `gets ₹${amount.toFixed(2)}` : `owes ₹${Math.abs(amount).toFixed(2)}`}
+                                                    </span>
                                                 </div>
-                                                <span className={`fw-bold small ${amount >= 0 ? 'text-success' : 'text-danger'}`}>
-                                                    {amount >= 0
-                                                        ? `${isMe ? 'get' : 'gets'} ₹${amount.toFixed(2)}`
-                                                        : `${isMe ? 'owe' : 'owes'} ₹${Math.abs(amount).toFixed(2)}`}
-                                                </span>
+
+                                                {/* ACTION ROW */}
+                                                {amount < -0.01 && !group.paymentStatus?.isPaid && (
+                                                    <div className="d-flex justify-content-end gap-2 align-items-center mt-1">
+                                                        {/* SENDER VIEW */}
+                                                        {isMe && status === "none" && (
+                                                            <button className="btn btn-sm btn-primary rounded-pill px-3 fw-bold" style={{ fontSize: '10px' }} onClick={handleRequestSettlement}>
+                                                                I HAVE PAID
+                                                            </button>
+                                                        )}
+
+                                                        {/* PENDING STATE (Visible to everyone) */}
+                                                        {status === "requested" && (
+                                                            <>
+                                                                <span className="badge bg-warning text-dark rounded-pill fw-bold" style={{ fontSize: '10px' }}>
+                                                                    <i className="bi bi-clock-history me-1"></i> PENDING VERIFICATION
+                                                                </span>
+
+                                                                {/* RECEIVER VIEW: Visible only to Test User (receiver) */}
+                                                                {(amIOwedMoney || isOwner) && !isMe && (
+                                                                    <button
+                                                                        className="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm"
+                                                                        style={{ fontSize: '10px' }}
+                                                                        onClick={() => handleApproveMember(email)}
+                                                                    >
+                                                                        CONFIRM RECEIVED
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
+
+                                                        {/* CONFIRMED STATE */}
+                                                        {status === "confirmed" && (
+                                                            <span className="badge bg-success-subtle text-success border border-success rounded-pill fw-bold" style={{ fontSize: '10px' }}>
+                                                                VERIFIED BY RECEIVER <i className="bi bi-check-circle-fill ms-1"></i>
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </li>
                                         );
                                     })}
@@ -302,24 +361,19 @@ function GroupExpenses() {
 
                     <div className="card border-0 shadow-sm rounded-4 mt-4">
                         <div className="card-body p-4">
-                            <h5 className="fw-bold mb-3 small text-uppercase text-muted ls-1">Settlement History</h5>
-                            <div className="timeline-small">
-                                {expenses.filter(e => e.isSettled).length === 0 ? (
-                                    <p className="text-muted extra-small mb-0">No past settlements recorded.</p>
+                            <h5 className="fw-bold mb-3 small text-uppercase text-muted ls-1">Individual Payments</h5>
+                            <div className="vstack gap-2">
+                                {group.members?.filter(m => m.settlementStatus === 'confirmed').length === 0 ? (
+                                    <p className="text-muted extra-small mb-0">No verified payments yet.</p>
                                 ) : (
-                                    <div className="vstack gap-2">
-                                        {[...new Set(expenses.filter(e => e.isSettled).map(e => new Date(e.settledAt || e.date).toLocaleDateString()))].map(date => (
-                                            <div key={date} className="p-2 border rounded-3 bg-light">
-                                                <div className="d-flex justify-content-between align-items-center">
-                                                    <span className="extra-small fw-bold text-dark">{date}</span>
-                                                    <span className="badge bg-success-subtle text-success extra-small">Verified</span>
-                                                </div>
-                                                <p className="extra-small text-muted mb-0 mt-1">
-                                                    Dues cleared for all members.
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    group.members?.filter(m => m.settlementStatus === 'confirmed').map(m => (
+                                        <div key={m.email} className="p-2 border rounded-3 bg-light d-flex justify-content-between align-items-center shadow-sm">
+                                            <span className="extra-small fw-bold text-dark">
+                                                {m.email === userDetails?.email ? 'You' : (m.email.split('@')[0])} has paid his dues
+                                            </span>
+                                            <i className="bi bi-patch-check-fill text-success"></i>
+                                        </div>
+                                    ))
                                 )}
                             </div>
                         </div>
@@ -351,7 +405,7 @@ function GroupExpenses() {
                                                     <div className="d-flex flex-column align-items-end">
                                                         <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 mb-1">
                                                             <i className="bi bi-check-circle-fill me-1"></i>
-                                                            {expense.settledBy === userDetails?.email ? 'You' : expense.settledBy?.split('@')[0]} paid ₹{expense.splits.find(s => s.email === expense.settledBy)?.amount || 0}
+                                                            {expense.settledBy === userDetails?.email ? 'You' : expense.settledBy?.split('@')[0]} closed this
                                                         </span>
                                                         <span className="extra-small text-muted">Settled on {new Date(expense.settledAt).toLocaleDateString()}</span>
                                                     </div>
