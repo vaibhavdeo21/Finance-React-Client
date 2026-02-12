@@ -25,7 +25,7 @@ function GroupExpenses() {
             setGroup(currentGroup);
 
             // Initialize budget from group data if it exists
-            setBudgetGoal(currentGroup.budgetGoal || 0);
+            setBudgetGoal(currentGroup?.budgetGoal || 0);
 
             const expenseRes = await axios.get(`${serverEndpoint}/expenses/${groupId}`, { withCredentials: true });
             setExpenses(expenseRes.data);
@@ -121,10 +121,32 @@ function GroupExpenses() {
     if (loading) return <div className="p-5 text-center">Loading...</div>;
     if (!group) return <div className="p-5 text-center">Group not found or Access Denied</div>;
 
-    const groupAdminId = group.adminId?._id || group.adminId;
-    const isGroupAdmin = userDetails?._id?.toString() === groupAdminId?.toString();
 
-    // NEW: Calculations for Header & Budgeting
+    // NEW LOGIC (checks if user is creator OR has the Admin role)
+    // IMPROVED LOGIC: Check by email and handle case sensitivity
+    const currentMember = group.members?.find(
+        (m) => m.email?.toLowerCase() === userDetails?.email?.toLowerCase()
+    );
+
+    const userRole = currentMember?.role?.toLowerCase();
+    const isOwner = userDetails?._id?.toString() === (group.adminId?._id || group.adminId)?.toString();
+
+    // 1. General Admin Rights (Settle, Reopen, Budget)
+    const canManageGroup = isOwner || userRole === "admin" || userRole === "manager";
+
+    // 2. High-Level Rights (Delete) - EXCLUDES manager
+    const canDeleteGroup = isOwner || userRole === "admin";
+
+    const currentUserMemberData = group.members?.find(
+        (m) => m.email?.toLowerCase() === userDetails?.email?.toLowerCase()
+    );
+
+    const isGroupAdmin =
+        (userDetails?._id?.toString() === (group.adminId?._id || group.adminId)?.toString()) ||
+        (currentUserMemberData?.role?.toLowerCase() === "admin") ||
+        (currentUserMemberData?.role?.toLowerCase() === "manager");
+
+    // Calculations for Header & Budgeting
     const totalGroupSpending = expenses.reduce((sum, exp) => sum + exp.amount, 0);
     const isOverBudget = budgetGoal > 0 && totalGroupSpending > budgetGoal;
     const progressPercent = budgetGoal > 0 ? Math.min((totalGroupSpending / budgetGoal) * 100, 100) : 0;
@@ -146,17 +168,16 @@ function GroupExpenses() {
                             {group.paymentStatus?.isPaid ? 'Settled' : group.paymentStatus?.isPendingApproval ? 'Pending Approval' : 'Active'}
                         </span>
 
-                        {/* UPDATED: Budget Badge with Solid Visual Buttons */}
+                        {/* Budget Badge */}
                         <div className={`badge rounded-pill px-3 py-2 border d-flex align-items-center shadow-sm ${isOverBudget ? 'bg-danger text-white border-danger' : 'bg-white text-dark border-light-subtle'}`}>
                             <i className={`bi bi-graph-up-arrow me-2 ${isOverBudget ? 'text-white' : 'text-primary'}`}></i>
                             <span className="me-2 fw-bold">
                                 Spent: ₹{totalGroupSpending.toLocaleString()} / {budgetGoal > 0 ? `₹${budgetGoal.toLocaleString()}` : "No Limit"}
                             </span>
-                            
+
                             {isGroupAdmin && (
                                 <div className="d-flex gap-1">
-                                    {/* Solid Edit Button with Text for Accessibility */}
-                                    <button 
+                                    <button
                                         className={`btn btn-sm rounded-pill px-2 d-flex align-items-center justify-content-center border-0 shadow-sm ${isOverBudget ? 'btn-light text-danger' : 'btn-primary text-white'}`}
                                         style={{ height: '22px', fontSize: '10px' }}
                                         onClick={handleUpdateBudget}
@@ -165,9 +186,8 @@ function GroupExpenses() {
                                         <i className="bi bi-pencil-fill me-1"></i> SET
                                     </button>
 
-                                    {/* Solid Reset Button with Text for Accessibility */}
                                     {budgetGoal > 0 && (
-                                        <button 
+                                        <button
                                             className={`btn btn-sm rounded-pill px-2 d-flex align-items-center justify-content-center border-0 shadow-sm ${isOverBudget ? 'btn-light text-danger' : 'btn-secondary text-white'}`}
                                             style={{ height: '22px', fontSize: '10px' }}
                                             onClick={handleResetBudget}
@@ -181,7 +201,6 @@ function GroupExpenses() {
                         </div>
                     </div>
 
-                    {/* NEW: Progress Bar Visualization */}
                     {budgetGoal > 0 && (
                         <div className="progress mt-3 rounded-pill shadow-sm" style={{ height: '8px', maxWidth: '350px' }}>
                             <div
@@ -218,7 +237,7 @@ function GroupExpenses() {
                         </button>
                     )}
 
-                    {isGroupAdmin && (
+                    {canDeleteGroup && (
                         <button
                             className="btn btn-danger rounded-pill px-3 shadow-sm d-flex align-items-center fw-bold"
                             onClick={handleDeleteGroup}
@@ -234,7 +253,6 @@ function GroupExpenses() {
                 </div>
             </div>
 
-            {/* NEW: Over Budget Alert */}
             {isOverBudget && (
                 <div className="alert alert-danger rounded-4 shadow-sm border-0 d-flex align-items-center mb-4 animate__animated animate__headShake">
                     <i className="bi bi-exclamation-octagon-fill fs-4 me-3"></i>
