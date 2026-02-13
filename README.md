@@ -30,7 +30,7 @@ The frontend isn't just a pretty face; it's a smart application that handles:
 
 ## 📂 Folder Structure (The Blueprint)
 
-We organized the React app to separate "Pages" (Views) from "Components" (Building Blocks).
+We organized the React app to separate "Pages" (Views) from "Components".
 
 ```text
 finance-react-client/
