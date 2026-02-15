@@ -18,6 +18,7 @@ import ManageUsers from "./pages/ManageUsers";
 import ProtectedRoute from "./rbac/ProtectedRoute";
 import UnauthorizedAccess from "./components/errors/UnauthorizedAccess";
 import ManagePayments from "./pages/ManagePayments";
+import ManageSubscription from "./pages/ManageSubscription"; 
 
 function App() {
     const dispatch = useDispatch();
