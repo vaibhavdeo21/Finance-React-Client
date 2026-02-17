@@ -181,6 +181,7 @@ function Dashboard() {
 
             <CreateGroupModal
                 show={showCreateModal}
+                onHide={() => setShowCreateModal(false)}
                 onSuccess={fetchData}
             />
         </div>
