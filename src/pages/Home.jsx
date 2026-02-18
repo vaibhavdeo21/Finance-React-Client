@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 function Home() {
     return (
         <div className="bg-white">
-            <header className="py-5 mb-5 bg-light border-bottom">
                 <div className="container py-5">
                     <div className="row align-items-center">
                         <div className="col-lg-6 text-center text-lg-start">
