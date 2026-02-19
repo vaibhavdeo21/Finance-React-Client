@@ -9,8 +9,7 @@ export const userReducer = (state = null, action) => {
             return action.payload;
         
         // This case helps in logout functionality.
-        case CLEAR_USER:
-            return null;
+        
 
         // This case helps in handling cases where userReducer
         // is invoked due to change in some other state variable
