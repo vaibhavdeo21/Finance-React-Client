@@ -11,7 +11,6 @@ function GroupExpenses() {
     const [group, setGroup] = useState(null);
     const [expenses, setExpenses] = useState([]);
     const [balances, setBalances] = useState({});
-    const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
 
     // NEW: Budget State
