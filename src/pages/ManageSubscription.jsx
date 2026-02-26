@@ -19,6 +19,7 @@ function ManageSubscription() {
     const [userProfile, setUserProfile] = useState(null);
     const [errors, setErrors] = useState({});
     const [message, setMessage] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const getUserProfile = async () => {
         try {
