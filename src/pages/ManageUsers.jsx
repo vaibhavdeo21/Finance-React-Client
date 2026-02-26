@@ -10,7 +10,6 @@ function ManageUsers() {
     const userDetails = useSelector((state) => state.userDetails); 
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(false);
     const [users, setUsers] = useState([]); 
     const [groups, setGroups] = useState([]); 
     const [selectedGroup, setSelectedGroup] = useState(null);
