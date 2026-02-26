@@ -10,6 +10,7 @@ const PLAN_IDS = {
     },
     UNLIMITED_YEARLY: {
         price: 50,
+        planName: 'Unlimited Yearly',
         frequency: 'yearly'
     }
 };
